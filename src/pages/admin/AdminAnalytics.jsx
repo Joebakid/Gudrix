@@ -4,16 +4,30 @@ import {
   onSnapshot,
   orderBy,
   query,
+  where,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 
 export default function AdminAnalytics() {
   const [events, setEvents] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7) // YYYY-MM
+  );
 
-  // 🔥 Load analytics events live
+  // -----------------------------------
+  // 🔥 Load analytics by selected month
+  // -----------------------------------
   useEffect(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 1);
+
     const q = query(
       collection(db, "analytics"),
+      where("createdAt", ">=", Timestamp.fromDate(start)),
+      where("createdAt", "<", Timestamp.fromDate(end)),
       orderBy("createdAt", "desc")
     );
 
@@ -26,9 +40,11 @@ export default function AdminAnalytics() {
     });
 
     return () => unsub();
-  }, []);
+  }, [selectedMonth]);
 
+  // -----------------------------------
   // 📊 Calculate stats + aggregations
+  // -----------------------------------
   const stats = useMemo(() => {
     const pageEvents = events.filter(
       (e) => e.type === "page_view"
@@ -46,9 +62,10 @@ export default function AdminAnalytics() {
     // ------------------------
     // Visitors (unique people)
     // ------------------------
-    const uniqueVisitors = new Set(
-      events.map((e) => e.visitorId).filter(Boolean)
-    ).size;
+    const uniqueVisitors =
+      new Set(
+        events.map((e) => e.visitorId).filter(Boolean)
+      ).size || 0;
 
     // ------------------------
     // Page Aggregation
@@ -74,10 +91,18 @@ export default function AdminAnalytics() {
       (a, b) => b[1] - a[1]
     )[0];
 
+    const totalPageVisitors =
+      Object.values(pageVisitors).reduce(
+        (sum, set) => sum + set.size,
+        0
+      ) || 1;
+
     const visitorsPerPage = Object.entries(pageVisitors).map(
       ([path, visitors]) => ({
         path,
-        visitors: visitors.size,
+        percent: Math.round(
+          (visitors.size / totalPageVisitors) * 100
+        ),
       })
     );
 
@@ -118,14 +143,16 @@ export default function AdminAnalytics() {
     function detectDevice(userAgent = "") {
       const ua = userAgent.toLowerCase();
 
-      if (ua.includes("android")) return "Android";
-      if (ua.includes("iphone") || ua.includes("ipad"))
-        return "iOS";
-      if (ua.includes("windows")) return "Windows";
-      if (ua.includes("mac")) return "Mac";
-      if (ua.includes("linux")) return "Linux";
+      if (
+        ua.includes("android") ||
+        ua.includes("iphone") ||
+        ua.includes("ipad") ||
+        ua.includes("mobile")
+      ) {
+        return "Mobile";
+      }
 
-      return "Unknown";
+      return "Desktop";
     }
 
     const deviceMap = {};
@@ -135,10 +162,18 @@ export default function AdminAnalytics() {
       deviceMap[device] = (deviceMap[device] || 0) + 1;
     });
 
+    const totalDevices =
+      Object.values(deviceMap).reduce(
+        (a, b) => a + b,
+        0
+      ) || 1;
+
     const devices = Object.entries(deviceMap).map(
       ([name, count]) => ({
         name,
-        count,
+        percent: Math.round(
+          (count / totalDevices) * 100
+        ),
       })
     );
 
@@ -165,13 +200,23 @@ export default function AdminAnalytics() {
   }, [events]);
 
   return (
-    <div className="container-app">
+    <div className="container-app py-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold">
+          Gudrix Analytics Dashboard
+        </h1>
 
-   
-    <div className="  px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <h1 className="text-2xl font-bold">
-        Gudrix Analytics Dashboard
-      </h1>
+        {/* 📅 Month Selector */}
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) =>
+            setSelectedMonth(e.target.value)
+          }
+          className="border rounded-lg px-3 py-2 text-sm"
+        />
+      </div>
 
       {/* ===== KPI CARDS ===== */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -191,7 +236,6 @@ export default function AdminAnalytics() {
 
       {/* ===== INSIGHTS GRID ===== */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Most Visited Page */}
         <Insight title="Most Visited Page">
           {stats.mostVisitedPage ? (
             <>
@@ -207,7 +251,6 @@ export default function AdminAnalytics() {
           )}
         </Insight>
 
-        {/* Most Viewed Product */}
         <Insight title="Most Viewed Product">
           {stats.mostViewedProducts[0] ? (
             <>
@@ -223,7 +266,6 @@ export default function AdminAnalytics() {
           )}
         </Insight>
 
-        {/* Most Added To Cart */}
         <Insight title="Most Added To Cart">
           {stats.mostAddedProducts[0] ? (
             <>
@@ -239,7 +281,6 @@ export default function AdminAnalytics() {
           )}
         </Insight>
 
-        {/* Most Checkout Product */}
         <Insight title="Most Checkout Product">
           {stats.mostCheckoutProducts[0] ? (
             <>
@@ -255,7 +296,6 @@ export default function AdminAnalytics() {
           )}
         </Insight>
 
-        {/* Visitors Per Page */}
         <Insight title="Visitors Per Page">
           {stats.visitorsPerPage.length ? (
             <div className="space-y-1 text-sm">
@@ -265,7 +305,7 @@ export default function AdminAnalytics() {
                   className="flex justify-between"
                 >
                   <span>{p.path}</span>
-                  <span>{p.visitors}</span>
+                  <span>{p.percent}%</span>
                 </div>
               ))}
             </div>
@@ -274,7 +314,6 @@ export default function AdminAnalytics() {
           )}
         </Insight>
 
-        {/* Devices */}
         <Insight title="Devices">
           {stats.devices.length ? (
             <div className="space-y-1 text-sm">
@@ -284,7 +323,7 @@ export default function AdminAnalytics() {
                   className="flex justify-between"
                 >
                   <span>{d.name}</span>
-                  <span>{d.count}</span>
+                  <span>{d.percent}%</span>
                 </div>
               ))}
             </div>
@@ -293,47 +332,7 @@ export default function AdminAnalytics() {
           )}
         </Insight>
       </div>
-
-      {/* ===== RECENT EVENTS ===== */}
-      <div className="bg-white rounded-xl p-4 shadow">
-        <h2 className="font-semibold mb-3">
-          Recent Activity
-        </h2>
-
-        <div className="space-y-2 max-h-[420px] overflow-auto text-sm">
-          {events.slice(0, 50).map((e) => (
-            <div
-              key={e.id}
-              className="border-b pb-2 flex justify-between gap-4"
-            >
-              <div>
-                <div className="font-medium">
-                  {e.type}
-                </div>
-                <div className="opacity-60 break-all">
-                  {JSON.stringify(e.payload)}
-                </div>
-              </div>
-
-              <div className="opacity-50 text-xs whitespace-nowrap">
-                {e.createdAt?.seconds
-                  ? new Date(
-                      e.createdAt.seconds * 1000
-                    ).toLocaleString()
-                  : "now"}
-              </div>
-            </div>
-          ))}
-
-          {events.length === 0 && (
-            <p className="text-center text-neutral-500 py-10">
-              No analytics data yet.
-            </p>
-          )}
-        </div>
-      </div>
     </div>
-     </div>
   );
 }
 
