@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { logEvent } from "../lib/analytics"; // ✅ Analytics
 
 const WHATSAPP_NUMBER = "2349037291405";
 
@@ -15,6 +16,18 @@ export default function Navbar() {
 
   function checkout() {
     if (!cart.length) return;
+
+    // ✅ Track checkout click
+    logEvent("checkout_click", {
+      itemsCount: cart.length,
+      cartTotal: totalPrice,
+      products: cart.map((p) => ({
+        id: p.id,
+        name: p.name,
+        qty: p.qty,
+        price: p.price,
+      })),
+    });
 
     const message = cart
       .map(

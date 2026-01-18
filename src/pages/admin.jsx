@@ -12,6 +12,10 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
+import { Routes, Route, Link } from "react-router-dom";
+
+// ✅ Analytics page
+import AdminAnalytics from "./admin/AdminAnalytics";
 
 /* ---------------- Category Block ---------------- */
 function CategoryBlock({ title, items, onDelete }) {
@@ -135,8 +139,8 @@ function CategoryBlock({ title, items, onDelete }) {
   );
 }
 
-/* ---------------- Admin Page ---------------- */
-export default function Admin() {
+/* ---------------- Admin Dashboard Page ---------------- */
+function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
 
@@ -336,6 +340,32 @@ export default function Admin() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ---------------- Main Admin Router ---------------- */
+export default function Admin() {
+  return (
+    <div>
+      {/* Simple Admin Nav */}
+      <div className="container-app  ">
+  <div className="flex gap-4 p-4 border-b ">
+        <Link to="/admin" className="font-medium underline">
+          Dashboard
+        </Link>
+
+        <Link to="/admin/analytics" className="font-medium underline">
+          Analytics
+        </Link>
+      </div>
+      </div>
+    
+
+      <Routes>
+        <Route index element={<AdminDashboard />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+      </Routes>
     </div>
   );
 }

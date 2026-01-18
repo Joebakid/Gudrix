@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
+import { logEvent } from "../lib/analytics"; // ✅ Analytics
 
 export default function Shop() {
   const [products, setProducts] = useState([]);
@@ -36,6 +37,30 @@ export default function Shop() {
     .filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase())
     );
+
+  // ✅ Track product view (when modal opens)
+  function openProduct(product) {
+    setSelectedProduct(product);
+
+    logEvent("product_view", {
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      category: product.category,
+    });
+  }
+
+  // ✅ Track add to cart
+  function handleAddToCart(product) {
+    addToCart(product);
+
+    logEvent("add_to_cart", {
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      category: product.category,
+    });
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -79,7 +104,7 @@ export default function Shop() {
         {filtered.map((p) => (
           <div
             key={p.id}
-            onClick={() => setSelectedProduct(p)}
+            onClick={() => openProduct(p)} // ✅ track view
             className="border rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col cursor-pointer"
           >
             <img
@@ -107,7 +132,7 @@ export default function Shop() {
               <button
                 onClick={(e) => {
                   e.stopPropagation(); // prevent modal opening
-                  addToCart(p);
+                  handleAddToCart(p); // ✅ track add-to-cart
                 }}
                 className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
               >
@@ -162,7 +187,7 @@ export default function Shop() {
 
             <button
               onClick={() => {
-                addToCart(selectedProduct);
+                handleAddToCart(selectedProduct); // ✅ track add-to-cart
                 setSelectedProduct(null);
               }}
               className="w-full bg-black text-white py-2 rounded-lg hover:opacity-90"
