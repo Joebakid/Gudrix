@@ -12,6 +12,45 @@ import {
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 
+/* ---------------- Category Block ---------------- */
+function CategoryBlock({ title, items, onDelete }) {
+  if (!items.length) return null;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="font-semibold text-lg">{title}</h3>
+
+      {items.map((p) => (
+        <div
+          key={p.id}
+          className="flex items-center gap-3 border rounded-lg p-2"
+        >
+          <img
+            src={p.imageUrl}
+            alt={p.name}
+            className="w-14 h-14 object-cover rounded"
+          />
+
+          <div className="flex-1">
+            <p className="text-sm font-medium">{p.name}</p>
+            <p className="text-xs text-neutral-500 capitalize">
+              ₦{p.price.toLocaleString()} • Stock: {p.stock ?? 0}
+            </p>
+          </div>
+
+          <button
+            onClick={() => onDelete(p.id)}
+            className="text-xs text-red-600 hover:underline"
+          >
+            Delete
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- Admin Page ---------------- */
 export default function Admin() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
@@ -108,6 +147,10 @@ export default function Admin() {
     );
   }
 
+  const shoes = products.filter((p) => p.category === "shoes");
+  const slides = products.filter((p) => p.category === "slides");
+  const heels = products.filter((p) => p.category === "heels");
+
   return (
     <div className="max-w-xl mx-auto px-4 py-10">
       {/* Header */}
@@ -182,42 +225,29 @@ export default function Admin() {
         </button>
       </form>
 
-      {/* Products List */}
-      <div className="mt-10">
-        <h3 className="font-semibold mb-3">Products</h3>
+      {/* Products by Category */}
+      <div className="mt-12 space-y-10">
 
-        <div className="space-y-3">
-          {products.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-3 border rounded-lg p-2"
-            >
-              <img
-                src={p.imageUrl}
-                alt={p.name}
-                className="w-14 h-14 object-cover rounded"
-              />
+        <CategoryBlock
+          title="👟 Shoes"
+          items={shoes}
+          onDelete={deleteProduct}
+        />
 
-              <div className="flex-1">
-                <p className="text-sm font-medium">{p.name}</p>
-                <p className="text-xs text-neutral-500 capitalize">
-                  ₦{p.price.toLocaleString()} • Stock: {p.stock ?? 0} •{" "}
-                  {p.category}
-                </p>
-              </div>
+        <CategoryBlock
+          title="🩴 Slides"
+          items={slides}
+          onDelete={deleteProduct}
+        />
 
-              <button
-                onClick={() => deleteProduct(p.id)}
-                className="text-xs text-red-600 hover:underline"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
+        <CategoryBlock
+          title="👠 Heels"
+          items={heels}
+          onDelete={deleteProduct}
+        />
 
         {products.length === 0 && (
-          <p className="text-sm text-neutral-500 mt-4">
+          <p className="text-sm text-neutral-500">
             No products yet.
           </p>
         )}
