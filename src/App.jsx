@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Admin from "./pages/admin";
 import AdminLogin from "./pages/AdminLogin";
 import Shop from "./pages/Shop";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function App() {
   return (
@@ -17,6 +18,9 @@ export default function App() {
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
+
+      {/*Vercel Analytics */}
+      <Analytics />
     </BrowserRouter>
   );
 }

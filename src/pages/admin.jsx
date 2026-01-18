@@ -8,12 +8,40 @@ import {
   doc,
   query,
   orderBy,
+  updateDoc, // ✅ NEW
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 
 /* ---------------- Category Block ---------------- */
 function CategoryBlock({ title, items, onDelete }) {
+  const [editingId, setEditingId] = useState(null);
+  const [tempName, setTempName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function startEdit(product) {
+    setEditingId(product.id);
+    setTempName(product.name);
+  }
+
+  async function saveEdit(productId) {
+    if (!tempName.trim()) return alert("Name cannot be empty");
+
+    try {
+      setSaving(true);
+      const ref = doc(db, "products", productId);
+      await updateDoc(ref, {
+        name: tempName.trim(),
+      });
+      setEditingId(null);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to update product name");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!items.length) return null;
 
   return (
@@ -32,11 +60,48 @@ function CategoryBlock({ title, items, onDelete }) {
           />
 
           <div className="flex-1">
-            <p className="text-sm font-medium">{p.name}</p>
-            <p className="text-xs text-neutral-500 capitalize">
-              ₦{p.price.toLocaleString()} • Stock: {p.stock ?? 0}
-            </p>
+            {editingId === p.id ? (
+              <div className="flex gap-2">
+                <input
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  autoFocus
+                />
+
+                <button
+                  disabled={saving}
+                  onClick={() => saveEdit(p.id)}
+                  className="text-xs bg-green-600 text-white px-2 rounded disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="text-xs text-neutral-500 hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm font-medium">{p.name}</p>
+                <p className="text-xs text-neutral-500 capitalize">
+                  ₦{p.price.toLocaleString()} • Stock: {p.stock ?? 0}
+                </p>
+              </>
+            )}
           </div>
+
+          {editingId !== p.id && (
+            <button
+              onClick={() => startEdit(p)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Edit
+            </button>
+          )}
 
           <button
             onClick={() => onDelete(p.id)}
@@ -227,7 +292,6 @@ export default function Admin() {
 
       {/* Products by Category */}
       <div className="mt-12 space-y-10">
-
         <CategoryBlock
           title="👟 Shoes"
           items={shoes}
