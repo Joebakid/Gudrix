@@ -8,7 +8,7 @@ import {
   doc,
   query,
   orderBy,
-  updateDoc, // ✅ NEW
+  updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
@@ -17,26 +17,32 @@ import { auth, db } from "../lib/firebase";
 function CategoryBlock({ title, items, onDelete }) {
   const [editingId, setEditingId] = useState(null);
   const [tempName, setTempName] = useState("");
+  const [tempPrice, setTempPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
   function startEdit(product) {
     setEditingId(product.id);
     setTempName(product.name);
+    setTempPrice(product.price);
   }
 
   async function saveEdit(productId) {
     if (!tempName.trim()) return alert("Name cannot be empty");
+    if (Number(tempPrice) < 0) return alert("Price must be valid");
 
     try {
       setSaving(true);
       const ref = doc(db, "products", productId);
+
       await updateDoc(ref, {
         name: tempName.trim(),
+        price: Number(tempPrice),
       });
+
       setEditingId(null);
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to update product name");
+      alert("❌ Failed to update product");
     } finally {
       setSaving(false);
     }
@@ -61,28 +67,42 @@ function CategoryBlock({ title, items, onDelete }) {
 
           <div className="flex-1">
             {editingId === p.id ? (
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                {/* Name */}
                 <input
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   className="w-full border rounded px-2 py-1 text-sm"
+                  placeholder="Product name"
                   autoFocus
                 />
 
-                <button
-                  disabled={saving}
-                  onClick={() => saveEdit(p.id)}
-                  className="text-xs bg-green-600 text-white px-2 rounded disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
+                {/* Price */}
+                <input
+                  type="number"
+                  min="0"
+                  value={tempPrice}
+                  onChange={(e) => setTempPrice(e.target.value)}
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  placeholder="Price"
+                />
 
-                <button
-                  onClick={() => setEditingId(null)}
-                  className="text-xs text-neutral-500 hover:underline"
-                >
-                  Cancel
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    disabled={saving}
+                    onClick={() => saveEdit(p.id)}
+                    className="text-xs bg-green-600 text-white px-3 py-1 rounded disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="text-xs text-neutral-500 hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             ) : (
               <>
