@@ -18,15 +18,26 @@ export default function Navbar() {
 
     const message = cart
       .map(
-        (p) =>
-          `${p.name} x${p.qty} = ₦${(
-            p.qty * p.price
-          ).toLocaleString()}`
+        (p, index) => `
+${index + 1}. ${p.name}
+Qty: ${p.qty}
+Unit Price: ₦${p.price.toLocaleString()}
+Subtotal: ₦${(p.qty * p.price).toLocaleString()}
+Image: ${p.imageUrl}
+        `
       )
       .join("\n");
 
+    const finalMessage = `
+Hello, I want to order the following items:
+
+${message}
+
+Total Amount: ₦${totalPrice.toLocaleString()}
+    `;
+
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      "Hello, I want to order:\n\n" + message
+      finalMessage
     )}`;
 
     window.open(url, "_blank");
@@ -39,7 +50,6 @@ export default function Navbar() {
       {/* Navbar */}
       <nav className="w-full border-b bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-
           {/* Logo */}
           <Link to="/shop" className="font-bold text-lg tracking-wide">
             Gudrix

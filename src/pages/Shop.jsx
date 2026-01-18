@@ -11,6 +11,7 @@ export default function Shop() {
 
   const { addToCart } = useCart();
 
+  // 🔥 Fetch products
   useEffect(() => {
     const q = query(
       collection(db, "products"),
@@ -66,11 +67,7 @@ export default function Shop() {
               >
                 {f === "all"
                   ? "All"
-                  : f === "shoes"
-                  ? "Shoes"
-                  : f === "slides"
-                  ? "Slides"
-                  : "Heels"}
+                  : f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
             ))}
           </div>
@@ -105,6 +102,17 @@ export default function Shop() {
               <span className="text-xs text-green-600 font-medium">
                 In stock
               </span>
+
+              {/* 🛒 Quick Add Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // prevent modal opening
+                  addToCart(p);
+                }}
+                className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
+              >
+                Add to Cart
+              </button>
             </div>
           </div>
         ))}
@@ -119,8 +127,15 @@ export default function Shop() {
 
       {/* 🪟 Product Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-5 relative">
+        <div
+          onClick={() => setSelectedProduct(null)}
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+        >
+          {/* Modal Card */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl max-w-md w-full p-5 relative"
+          >
             <button
               onClick={() => setSelectedProduct(null)}
               className="absolute top-3 right-3 text-sm"
