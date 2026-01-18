@@ -126,7 +126,7 @@ export default function Admin() {
     }
   }
 
-  // 🗑 Delete product
+  // 🗑 Delete products
   async function deleteProduct(id) {
     const ok = window.confirm("Delete this product?");
     if (!ok) return;
