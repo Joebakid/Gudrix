@@ -22,17 +22,20 @@ function CategoryBlock({ title, items, onDelete }) {
   const [editingId, setEditingId] = useState(null);
   const [tempName, setTempName] = useState("");
   const [tempPrice, setTempPrice] = useState("");
+  const [tempCategory, setTempCategory] = useState(""); // ✅ NEW
   const [saving, setSaving] = useState(false);
 
   function startEdit(product) {
     setEditingId(product.id);
     setTempName(product.name);
     setTempPrice(product.price);
+    setTempCategory(product.category); // ✅ load category
   }
 
   async function saveEdit(productId) {
     if (!tempName.trim()) return alert("Name cannot be empty");
     if (Number(tempPrice) < 0) return alert("Price must be valid");
+    if (!tempCategory) return alert("Category is required");
 
     try {
       setSaving(true);
@@ -41,6 +44,7 @@ function CategoryBlock({ title, items, onDelete }) {
       await updateDoc(ref, {
         name: tempName.trim(),
         price: Number(tempPrice),
+        category: tempCategory, // ✅ SAVE CATEGORY
       });
 
       setEditingId(null);
@@ -91,6 +95,18 @@ function CategoryBlock({ title, items, onDelete }) {
                   placeholder="Price"
                 />
 
+                {/* ✅ Category Selector */}
+                <select
+                  value={tempCategory}
+                  onChange={(e) => setTempCategory(e.target.value)}
+                  className="w-full border rounded px-2 py-1 text-sm"
+                >
+                  <option value="shoes">Shoes</option>
+                  <option value="slides">Slides</option>
+                  <option value="heels">Heels</option>
+                  <option value="jewelry">Jewelry</option>
+                </select>
+
                 <div className="flex gap-2">
                   <button
                     disabled={saving}
@@ -112,7 +128,8 @@ function CategoryBlock({ title, items, onDelete }) {
               <>
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-neutral-500 capitalize">
-                  ₦{p.price.toLocaleString()} • Stock: {p.stock ?? 0}
+                  ₦{p.price.toLocaleString()} • {p.category} • Stock:{" "}
+                  {p.stock ?? 0}
                 </p>
               </>
             )}
@@ -289,7 +306,7 @@ function AdminDashboard() {
           required
         />
 
-        {/* ✅ Category selector */}
+        {/* Category selector */}
         <select
           className="w-full border rounded-lg px-3 py-2"
           value={category}
@@ -320,35 +337,13 @@ function AdminDashboard() {
 
       {/* Products by Category */}
       <div className="mt-12 space-y-10">
-        <CategoryBlock
-          title="👟 Shoes"
-          items={shoes}
-          onDelete={deleteProduct}
-        />
-
-        <CategoryBlock
-          title="🩴 Slides"
-          items={slides}
-          onDelete={deleteProduct}
-        />
-
-        <CategoryBlock
-          title="👠 Heels"
-          items={heels}
-          onDelete={deleteProduct}
-        />
-
-        {/* ✅ Jewelry Section */}
-        <CategoryBlock
-          title="💍 Jewelry"
-          items={jewelry}
-          onDelete={deleteProduct}
-        />
+        <CategoryBlock title="👟 Shoes" items={shoes} onDelete={deleteProduct} />
+        <CategoryBlock title="🩴 Slides" items={slides} onDelete={deleteProduct} />
+        <CategoryBlock title="👠 Heels" items={heels} onDelete={deleteProduct} />
+        <CategoryBlock title="💍 Jewelry" items={jewelry} onDelete={deleteProduct} />
 
         {products.length === 0 && (
-          <p className="text-sm text-neutral-500">
-            No products yet.
-          </p>
+          <p className="text-sm text-neutral-500">No products yet.</p>
         )}
       </div>
     </div>
