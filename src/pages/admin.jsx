@@ -22,14 +22,14 @@ function CategoryBlock({ title, items, onDelete }) {
   const [editingId, setEditingId] = useState(null);
   const [tempName, setTempName] = useState("");
   const [tempPrice, setTempPrice] = useState("");
-  const [tempCategory, setTempCategory] = useState(""); // ✅ NEW
+  const [tempCategory, setTempCategory] = useState("");
   const [saving, setSaving] = useState(false);
 
   function startEdit(product) {
     setEditingId(product.id);
     setTempName(product.name);
     setTempPrice(product.price);
-    setTempCategory(product.category); // ✅ load category
+    setTempCategory(product.category);
   }
 
   async function saveEdit(productId) {
@@ -44,7 +44,7 @@ function CategoryBlock({ title, items, onDelete }) {
       await updateDoc(ref, {
         name: tempName.trim(),
         price: Number(tempPrice),
-        category: tempCategory, // ✅ SAVE CATEGORY
+        category: tempCategory,
       });
 
       setEditingId(null);
@@ -76,7 +76,6 @@ function CategoryBlock({ title, items, onDelete }) {
           <div className="flex-1">
             {editingId === p.id ? (
               <div className="space-y-2">
-                {/* Name */}
                 <input
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
@@ -85,7 +84,6 @@ function CategoryBlock({ title, items, onDelete }) {
                   autoFocus
                 />
 
-                {/* Price */}
                 <input
                   type="number"
                   min="0"
@@ -95,7 +93,7 @@ function CategoryBlock({ title, items, onDelete }) {
                   placeholder="Price"
                 />
 
-                {/* ✅ Category Selector */}
+                {/* ✅ Change category */}
                 <select
                   value={tempCategory}
                   onChange={(e) => setTempCategory(e.target.value)}
@@ -111,7 +109,7 @@ function CategoryBlock({ title, items, onDelete }) {
                   <button
                     disabled={saving}
                     onClick={() => saveEdit(p.id)}
-                    className="text-xs bg-green-600 text-white px-3 py-1 rounded disabled:opacity-50"
+                    className="text-xs bg-green-600 text-white px-3 py-1 rounded"
                   >
                     {saving ? "Saving..." : "Save"}
                   </button>
@@ -171,13 +169,9 @@ function AdminDashboard() {
   // 🔐 Protect admin route
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        window.location.href = "/login";
-      } else {
-        setUser(currentUser);
-      }
+      if (!currentUser) window.location.href = "/login";
+      else setUser(currentUser);
     });
-
     return () => unsub();
   }, []);
 
@@ -216,9 +210,6 @@ function AdminDashboard() {
         createdAt: serverTimestamp(),
       });
 
-      alert("✅ Product added successfully!");
-
-      // Reset form
       setName("");
       setPrice("");
       setStock(1);
@@ -232,17 +223,9 @@ function AdminDashboard() {
     }
   }
 
-  // 🗑 Delete products
   async function deleteProduct(id) {
-    const ok = window.confirm("Delete this product?");
-    if (!ok) return;
-
-    try {
-      await deleteDoc(doc(db, "products", id));
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to delete product");
-    }
+    if (!window.confirm("Delete this product?")) return;
+    await deleteDoc(doc(db, "products", id));
   }
 
   if (!user) {
@@ -253,18 +236,40 @@ function AdminDashboard() {
     );
   }
 
-  // ✅ Category filters
-  const shoes = products.filter((p) => p.category === "shoes");
-  const slides = products.filter((p) => p.category === "slides");
-  const heels = products.filter((p) => p.category === "heels");
-  const jewelry = products.filter((p) => p.category === "jewelry");
+  /* ---------------- AUTO SORT CATEGORIES ---------------- */
+
+  const categoryMap = products.reduce((acc, product) => {
+    const cat = product.category || "others";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(product);
+    return acc;
+  }, {});
+
+  const sortedCategories = Object.entries(categoryMap)
+    .map(([category, items]) => {
+      const latest = Math.max(
+        ...items.map((p) =>
+          p.createdAt?.seconds ? p.createdAt.seconds * 1000 : 0
+        )
+      );
+
+      return { category, items, latest };
+    })
+    .sort((a, b) => b.latest - a.latest);
+
+  const categoryTitles = {
+    shoes: "👟 Shoes",
+    slides: "🩴 Slides",
+    heels: "👠 Heels",
+    jewelry: "💍 Jewelry",
+    others: "📦 Others",
+  };
 
   return (
     <div className="max-w-xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
-
         <button
           onClick={() => signOut(auth)}
           className="text-sm text-red-500 hover:underline"
@@ -306,7 +311,6 @@ function AdminDashboard() {
           required
         />
 
-        {/* Category selector */}
         <select
           className="w-full border rounded-lg px-3 py-2"
           value={category}
@@ -329,18 +333,22 @@ function AdminDashboard() {
 
         <button
           disabled={loading}
-          className="w-full bg-black text-white rounded-lg py-2 hover:opacity-90 disabled:opacity-50"
+          className="w-full bg-black text-white rounded-lg py-2"
         >
           {loading ? "Saving..." : "Add Product"}
         </button>
       </form>
 
-      {/* Products by Category */}
+      {/* ✅ Dynamic Sorted Categories */}
       <div className="mt-12 space-y-10">
-        <CategoryBlock title="👟 Shoes" items={shoes} onDelete={deleteProduct} />
-        <CategoryBlock title="🩴 Slides" items={slides} onDelete={deleteProduct} />
-        <CategoryBlock title="👠 Heels" items={heels} onDelete={deleteProduct} />
-        <CategoryBlock title="💍 Jewelry" items={jewelry} onDelete={deleteProduct} />
+        {sortedCategories.map(({ category, items }) => (
+          <CategoryBlock
+            key={category}
+            title={categoryTitles[category] || category}
+            items={items}
+            onDelete={deleteProduct}
+          />
+        ))}
 
         {products.length === 0 && (
           <p className="text-sm text-neutral-500">No products yet.</p>
@@ -354,13 +362,11 @@ function AdminDashboard() {
 export default function Admin() {
   return (
     <div>
-      {/* Simple Admin Nav */}
       <div className="container-app">
         <div className="flex gap-4 p-4 border-b">
           <Link to="/admin" className="font-medium underline">
             Dashboard
           </Link>
-
           <Link to="/admin/analytics" className="font-medium underline">
             Analytics
           </Link>
