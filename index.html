@@ -1,9 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Basic -->
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/logo.png" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111111" />
 
     <!-- SEO -->
     <title>Gudrix Footwear | Slides, Heels & Men's Shoes</title>
@@ -20,27 +24,37 @@
 
     <meta name="author" content="Gudrix" />
 
-    <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- PWA manifest -->
     <link rel="manifest" href="/site.webmanifest" />
-    <link rel="icon" sizes="192x192" href="/web-app-manifest-192x192.png" />
-    <link rel="icon" sizes="512x512" href="/web-app-manifest-512x512.png" />
 
-    <!-- Open Graph / WhatsApp Preview -->
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://gudrix.vercel.app/" />
+
+    <!-- Open Graph / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Gudrix Footwear" />
     <meta property="og:title" content="Gudrix Footwear" />
     <meta
       property="og:description"
       content="Shop quality slides, heels and male shoes at Gudrix."
     />
+    <meta property="og:url" content="https://gudrix.vercel.app/" />
+
     <meta
       property="og:image"
       content="https://gudrix.vercel.app/logo.png"
     />
-    <meta property="og:url" content="https://gudrix.vercel.app" />
-    <meta property="og:type" content="website" />
+    <meta
+      property="og:image:secure_url"
+      content="https://gudrix.vercel.app/logo.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Gudrix Footwear logo" />
+    <meta property="og:locale" content="en_US" />
 
-    <!-- Twitter Preview -->
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Gudrix Footwear" />
     <meta
@@ -54,7 +68,35 @@
   </head>
 
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
     <div id="root"></div>
+
+    <!-- ✅ Vite entry point (REQUIRED) -->
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Vercel Web Analytics (production only) -->
+    <script>
+      (function () {
+        var host = window.location.hostname;
+        var isLocal =
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host === "[::1]";
+
+        if (isLocal) return;
+
+        window.va =
+          window.va ||
+          function () {
+            (window.vaq = window.vaq || []).push(arguments);
+          };
+
+        var s = document.createElement("script");
+        s.defer = true;
+        s.src = "/_vercel/insights/script.js";
+        document.head.appendChild(s);
+      })();
+    </script>
   </body>
 </html>
