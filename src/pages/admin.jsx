@@ -236,9 +236,11 @@ function AdminDashboard() {
     );
   }
 
+  // ✅ Category filters
   const shoes = products.filter((p) => p.category === "shoes");
   const slides = products.filter((p) => p.category === "slides");
   const heels = products.filter((p) => p.category === "heels");
+  const jewelry = products.filter((p) => p.category === "jewelry");
 
   return (
     <div className="max-w-xl mx-auto px-4 py-10">
@@ -287,6 +289,7 @@ function AdminDashboard() {
           required
         />
 
+        {/* ✅ Category selector */}
         <select
           className="w-full border rounded-lg px-3 py-2"
           value={category}
@@ -295,6 +298,7 @@ function AdminDashboard() {
           <option value="shoes">Shoes</option>
           <option value="slides">Slides</option>
           <option value="heels">Heels</option>
+          <option value="jewelry">Jewelry</option>
         </select>
 
         <input
@@ -334,6 +338,13 @@ function AdminDashboard() {
           onDelete={deleteProduct}
         />
 
+        {/* ✅ Jewelry Section */}
+        <CategoryBlock
+          title="💍 Jewelry"
+          items={jewelry}
+          onDelete={deleteProduct}
+        />
+
         {products.length === 0 && (
           <p className="text-sm text-neutral-500">
             No products yet.
@@ -349,18 +360,17 @@ export default function Admin() {
   return (
     <div>
       {/* Simple Admin Nav */}
-      <div className="container-app  ">
-  <div className="flex gap-4 p-4 border-b ">
-        <Link to="/admin" className="font-medium underline">
-          Dashboard
-        </Link>
+      <div className="container-app">
+        <div className="flex gap-4 p-4 border-b">
+          <Link to="/admin" className="font-medium underline">
+            Dashboard
+          </Link>
 
-        <Link to="/admin/analytics" className="font-medium underline">
-          Analytics
-        </Link>
+          <Link to="/admin/analytics" className="font-medium underline">
+            Analytics
+          </Link>
+        </div>
       </div>
-      </div>
-    
 
       <Routes>
         <Route index element={<AdminDashboard />} />

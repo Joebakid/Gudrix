@@ -78,8 +78,8 @@ export default function Shop() {
           />
 
           {/* Filters */}
-          <div className="flex gap-2">
-            {["all", "shoes", "slides", "heels"].map((f) => (
+          <div className="flex gap-2 flex-wrap">
+            {["all", "shoes", "slides", "heels", "jewelry"].map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
