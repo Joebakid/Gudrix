@@ -4,7 +4,7 @@ import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
 import { logEvent } from "../lib/analytics"; // ✅ Analytics
 
-export default function Shop() {
+export default function Shop({ page, setPage, pageSize = 2 }) {
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -37,6 +37,19 @@ export default function Shop() {
     .filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase())
     );
+
+  // ✅ Reset page when filter or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search, setPage]);
+
+  // ✅ Pagination logic
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+
+  const paginatedProducts = filtered.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   // ✅ Track product view (when modal opens)
   function openProduct(product) {
@@ -101,10 +114,10 @@ export default function Shop() {
 
       {/* Products Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-        {filtered.map((p) => (
+        {paginatedProducts.map((p) => (
           <div
             key={p.id}
-            onClick={() => openProduct(p)} // ✅ track view
+            onClick={() => openProduct(p)}
             className="border rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col cursor-pointer"
           >
             <img
@@ -131,8 +144,8 @@ export default function Shop() {
               {/* 🛒 Quick Add Button */}
               <button
                 onClick={(e) => {
-                  e.stopPropagation(); // prevent modal opening
-                  handleAddToCart(p); // ✅ track add-to-cart
+                  e.stopPropagation();
+                  handleAddToCart(p);
                 }}
                 className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
               >
@@ -150,13 +163,37 @@ export default function Shop() {
         </p>
       )}
 
+      {/* ✅ Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-10">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="px-4 py-2 border rounded disabled:opacity-40"
+          >
+            ◀ Prev
+          </button>
+
+          <span className="text-sm">
+            Page {page} of {totalPages}
+          </span>
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="px-4 py-2 border rounded disabled:opacity-40"
+          >
+            Next ▶
+          </button>
+        </div>
+      )}
+
       {/* 🪟 Product Modal */}
       {selectedProduct && (
         <div
           onClick={() => setSelectedProduct(null)}
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
         >
-          {/* Modal Card */}
           <div
             onClick={(e) => e.stopPropagation()}
             className="bg-white rounded-xl max-w-md w-full p-5 relative"
@@ -187,7 +224,7 @@ export default function Shop() {
 
             <button
               onClick={() => {
-                handleAddToCart(selectedProduct); // ✅ track add-to-cart
+                handleAddToCart(selectedProduct);
                 setSelectedProduct(null);
               }}
               className="w-full bg-black text-white py-2 rounded-lg hover:opacity-90"

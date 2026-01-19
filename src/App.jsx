@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -18,7 +18,6 @@ import { logEvent } from "./lib/analytics";
 
 /* --------------------------------------------
    Page Tracker Component
-   Tracks every route change for Gudrix analytics
 --------------------------------------------- */
 function PageTracker() {
   const location = useLocation();
@@ -33,6 +32,9 @@ function PageTracker() {
 }
 
 export default function App() {
+  // ✅ SHOP PAGINATION STATE (GLOBAL)
+  const [shopPage, setShopPage] = useState(1);
+
   return (
     <BrowserRouter>
       {/* ✅ Gudrix Analytics */}
@@ -44,14 +46,25 @@ export default function App() {
         {/* Redirect root to shop */}
         <Route path="/" element={<Navigate to="/shop" replace />} />
 
-        <Route path="/shop" element={<Shop />} />
+        {/* 🛒 Shop (pagination controlled here) */}
+        <Route
+          path="/shop"
+          element={
+            <Shop
+              page={shopPage}
+              setPage={setShopPage}
+              pageSize={8} // change to 8, 16 etc if you want
+            />
+          }
+        />
+
         <Route path="/login" element={<AdminLogin />} />
 
-        {/* ✅ IMPORTANT FIX: allow nested admin routes */}
+        {/* ✅ Admin routes untouched */}
         <Route path="/admin/*" element={<Admin />} />
       </Routes>
 
-      {/* ✅ Vercel Analytics (keep for comparison) */}
+      {/* ✅ Vercel Analytics */}
       <Analytics />
     </BrowserRouter>
   );
