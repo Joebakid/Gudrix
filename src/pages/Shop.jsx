@@ -18,8 +18,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
-
-  const [fullImage, setFullImage] = useState(null); // ✅ NEW
+  const [fullImage, setFullImage] = useState(null); // ✅ Image viewer
 
   const { addToCart } = useCart();
 
@@ -62,6 +61,14 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   useEffect(() => {
     setPage(1);
   }, [filter, search, setPage]);
+
+  // ⬆️ Auto scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, [page]);
 
   // ✅ Pagination
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
@@ -222,7 +229,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       {selectedProduct && (
         <div
           onClick={() => setSelectedProduct(null)}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 font-bold p-3.5 rounded-4xl"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 p-3"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -230,7 +237,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
           >
             <button
               onClick={() => setSelectedProduct(null)}
-              className="absolute top-3 right-3 text-sm bg-gray-500 py-0.5 px-1.5 rounded"
+              className="absolute top-3 right-3 text-sm bg-black text-white py-0.5 px-1.5 rounded cursor-pointer"
             >
               CLOSE
             </button>
@@ -241,7 +248,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
               onClick={() =>
                 setFullImage(selectedProduct.imageUrl)
               }
-              className="w-full   object-cover rounded-lg mb-4 cursor-zoom-in"
+              className="w-full object-cover rounded-lg mb-4 cursor-zoom-in"
             />
 
             <h3 className="font-bold text-lg">
