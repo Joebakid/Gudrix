@@ -169,9 +169,9 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="px-4 py-2 border rounded disabled:opacity-40"
+            className="px-4 py-1 border rounded disabled:opacity-40"
           >
-            ◀ Prev
+             Prev
           </button>
 
           <span className="text-sm">
@@ -181,9 +181,9 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
           <button
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="px-4 py-2 border rounded disabled:opacity-40"
+            className="px-4 py-1 border rounded disabled:opacity-40"
           >
-            Next ▶
+            Next 
           </button>
         </div>
       )}

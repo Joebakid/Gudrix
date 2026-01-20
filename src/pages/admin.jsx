@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   collection,
   addDoc,
@@ -20,7 +20,6 @@ import AdminAnalytics from "./admin/AdminAnalytics";
 /* ---------------- Image Preview Modal ---------------- */
 function ImageModal({ src, onClose }) {
   if (!src) return null;
-
   return (
     <div
       onClick={onClose}
@@ -87,12 +86,11 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
           key={p.id}
           className="flex items-center gap-3 border rounded-lg p-2"
         >
-          {/* ✅ Clickable Image */}
           <img
             src={p.imageUrl}
             alt={p.name}
             onClick={() => onPreview(p.imageUrl)}
-            className="w-14 h-14 object-cover rounded cursor-pointer hover:opacity-80"
+            className="w-14 h-14 object-cover rounded cursor-pointer"
           />
 
           <div className="flex-1">
@@ -102,8 +100,6 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   className="w-full border rounded px-2 py-1 text-sm"
-                  placeholder="Product name"
-                  autoFocus
                 />
 
                 <input
@@ -112,23 +108,21 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   value={tempPrice}
                   onChange={(e) => setTempPrice(e.target.value)}
                   className="w-full border rounded px-2 py-1 text-sm"
-                  placeholder="Price"
                 />
 
-                {/* ✅ Image URL Editor */}
                 <input
                   value={tempImageUrl}
                   onChange={(e) => setTempImageUrl(e.target.value)}
                   className="w-full border rounded px-2 py-1 text-sm"
-                  placeholder="Image URL"
                 />
 
-                {/* ✅ Live Preview */}
+                {/* ✅ Live preview while editing */}
                 {tempImageUrl && (
                   <img
                     src={tempImageUrl}
                     onClick={() => onPreview(tempImageUrl)}
-                    className="w-20 h-20 object-cover rounded cursor-pointer border"
+                    onError={(e) => (e.currentTarget.style.display = "none")}
+                    className="w-20 h-20 object-cover rounded border cursor-pointer"
                   />
                 )}
 
@@ -143,29 +137,19 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   <option value="jewelry">Jewelry</option>
                 </select>
 
-                <div className="flex gap-2">
-                  <button
-                    disabled={saving}
-                    onClick={() => saveEdit(p.id)}
-                    className="text-xs bg-green-600 text-white px-3 py-1 rounded"
-                  >
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-
-                  <button
-                    onClick={() => setEditingId(null)}
-                    className="text-xs text-neutral-500 hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                <button
+                  disabled={saving}
+                  onClick={() => saveEdit(p.id)}
+                  className="text-xs bg-green-600 text-white px-3 py-1 rounded"
+                >
+                  Save
+                </button>
               </div>
             ) : (
               <>
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-neutral-500 capitalize">
-                  ₦{p.price.toLocaleString()} • {p.category} • Stock:{" "}
-                  {p.stock ?? 0}
+                  ₦{p.price.toLocaleString()} • {p.category}
                 </p>
               </>
             )}
@@ -192,23 +176,24 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
   );
 }
 
-/* ---------------- Admin Dashboard Page ---------------- */
+/* ---------------- Admin Dashboard ---------------- */
 function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
-  const [previewImage, setPreviewImage] = useState(null); // ✅ Modal image
+  const [previewImage, setPreviewImage] = useState(null);
 
+  const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 6;
 
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState(1);
+  // ✅ MULTI PRODUCT FORM STATE
+  const [rows, setRows] = useState([
+    { name: "", price: "", imageUrl: "", stock: 1 },
+  ]);
   const [category, setCategory] = useState("shoes");
-  const [imageUrl, setImageUrl] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // 🔐 Protect admin route
+  // 🔐 Auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) window.location.href = "/login";
@@ -217,50 +202,110 @@ function AdminDashboard() {
     return () => unsub();
   }, []);
 
-  // 📦 Fetch products live
+  // 📦 Products
   useEffect(() => {
-    const q = query(
-      collection(db, "products"),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsub = onSnapshot(q, (snapshot) => {
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((d) => ({
         id: d.id,
         ...d.data(),
       }));
       setProducts(items);
     });
-
-    return () => unsub();
   }, []);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!imageUrl.trim()) return alert("Please paste an image URL");
+  /* ---------------- FILTER + SORT ---------------- */
+
+  const filteredProducts = useMemo(() => {
+    const base =
+      filter === "all"
+        ? products
+        : products.filter((p) => p.category === filter);
+
+    return [...base].sort((a, b) => {
+      const at =
+        a.createdAt?.seconds
+          ? a.createdAt.seconds * 1000
+          : a.clientCreatedAt || 0;
+      const bt =
+        b.createdAt?.seconds
+          ? b.createdAt.seconds * 1000
+          : b.clientCreatedAt || 0;
+      return bt - at;
+    });
+  }, [products, filter]);
+
+  const totalPages =
+    Math.ceil(filteredProducts.length / PAGE_SIZE) || 1;
+
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(
+      (page - 1) * PAGE_SIZE,
+      page * PAGE_SIZE
+    );
+  }, [filteredProducts, page]);
+
+  const groupedProducts = useMemo(() => {
+    return paginatedProducts.reduce((acc, p) => {
+      const cat = p.category || "others";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(p);
+      return acc;
+    }, {});
+  }, [paginatedProducts]);
+
+  /* ---------------- MULTI SAVE ---------------- */
+
+  function updateRow(index, field, value) {
+    setRows((rows) =>
+      rows.map((r, i) => (i === index ? { ...r, [field]: value } : r))
+    );
+  }
+
+  function addRow() {
+    setRows((r) => [...r, { name: "", price: "", imageUrl: "", stock: 1 }]);
+  }
+
+  function removeRow(index) {
+    setRows((r) => r.filter((_, i) => i !== index));
+  }
+
+  async function saveAll() {
+    const validRows = rows.filter(
+      (r) => r.name && r.price && r.imageUrl
+    );
+
+    if (!validRows.length) {
+      alert("Please fill at least one product row.");
+      return;
+    }
+
+    if (!window.confirm(`Save ${validRows.length} products?`)) return;
 
     try {
-      setLoading(true);
+      setSaving(true);
 
-      await addDoc(collection(db, "products"), {
-        name: name.trim(),
-        price: Number(price),
-        stock: Number(stock),
-        category,
-        imageUrl: imageUrl.trim(),
-        createdAt: serverTimestamp(),
-      });
+      await Promise.all(
+        validRows.map((r) =>
+          addDoc(collection(db, "products"), {
+            name: r.name.trim(),
+            price: Number(r.price),
+            stock: Number(r.stock || 1),
+            imageUrl: r.imageUrl.trim(),
+            category,
+            createdAt: serverTimestamp(),
+            clientCreatedAt: Date.now(),
+          })
+        )
+      );
 
-      setName("");
-      setPrice("");
-      setStock(1);
-      setCategory("shoes");
-      setImageUrl("");
+      setRows([{ name: "", price: "", imageUrl: "", stock: 1 }]);
+      alert("✅ Products saved successfully!");
     } catch (err) {
       console.error(err);
-      alert("❌ Error adding product");
+      alert("❌ Failed to save products");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
@@ -277,35 +322,6 @@ function AdminDashboard() {
     );
   }
 
-  /* ---------------- PAGINATION ---------------- */
-
-  const totalPages = Math.ceil(products.length / PAGE_SIZE) || 1;
-
-  const paginatedProducts = products.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  );
-
-  /* ---------------- AUTO SORT CATEGORIES ---------------- */
-
-  const categoryMap = paginatedProducts.reduce((acc, product) => {
-    const cat = product.category || "others";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(product);
-    return acc;
-  }, {});
-
-  const sortedCategories = Object.entries(categoryMap)
-    .map(([category, items]) => {
-      const latest = Math.max(
-        ...items.map((p) =>
-          p.createdAt?.seconds ? p.createdAt.seconds * 1000 : 0
-        )
-      );
-      return { category, items, latest };
-    })
-    .sort((a, b) => b.latest - a.latest);
-
   const categoryTitles = {
     shoes: "👟 Shoes",
     slides: "🩴 Slides",
@@ -315,15 +331,14 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-10">
-      {/* Image Viewer */}
+    <div className="max-w-3xl mx-auto px-4 py-10">
       <ImageModal
         src={previewImage}
         onClose={() => setPreviewImage(null)}
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
         <button
           onClick={() => signOut(auth)}
@@ -333,43 +348,30 @@ function AdminDashboard() {
         </button>
       </div>
 
-      {/* Add Product Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4 border rounded-xl p-5 bg-white shadow-sm"
+      {/* FILTER */}
+      <select
+        value={filter}
+        onChange={(e) => {
+          setFilter(e.target.value);
+          setPage(1);
+        }}
+        className="w-full mb-6 border rounded-lg px-3 py-2"
       >
-        <input
-          placeholder="Product name"
-          className="w-full border rounded-lg px-3 py-2"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+        <option value="all">📦 All Products</option>
+        <option value="shoes">👟 Shoes</option>
+        <option value="slides">🩴 Slides</option>
+        <option value="heels">👠 Heels</option>
+        <option value="jewelry">💍 Jewelry</option>
+      </select>
 
-        <input
-          type="number"
-          min="0"
-          placeholder="Price"
-          className="w-full border rounded-lg px-3 py-2"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
-        />
-
-        <input
-          type="number"
-          min="0"
-          placeholder="Stock quantity"
-          className="w-full border rounded-lg px-3 py-2"
-          value={stock}
-          onChange={(e) => setStock(e.target.value)}
-          required
-        />
+      {/* ---------------- MULTI PRODUCT FORM ---------------- */}
+      <div className="border rounded-xl p-4 bg-white shadow space-y-4 mb-10">
+        <h3 className="font-semibold">➕ Add Multiple Products</h3>
 
         <select
-          className="w-full border rounded-lg px-3 py-2"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          className="border rounded px-3 py-2 w-full"
         >
           <option value="shoes">Shoes</option>
           <option value="slides">Slides</option>
@@ -377,44 +379,126 @@ function AdminDashboard() {
           <option value="jewelry">Jewelry</option>
         </select>
 
-        <input
-          type="url"
-          placeholder="Image URL (paste link)"
-          className="w-full border rounded-lg px-3 py-2"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          required
-        />
+        {rows.map((row, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center"
+          >
+            <input
+              placeholder="Name"
+              value={row.name}
+              onChange={(e) => updateRow(index, "name", e.target.value)}
+              className="border rounded px-2 py-1"
+            />
 
-        {/* ✅ Live Preview when adding */}
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            onClick={() => setPreviewImage(imageUrl)}
-            className="w-24 h-24 object-cover rounded cursor-pointer border"
-          />
-        )}
+            <input
+              type="number"
+              placeholder="Price"
+              value={row.price}
+              onChange={(e) => updateRow(index, "price", e.target.value)}
+              className="border rounded px-2 py-1"
+            />
+
+            <input
+              placeholder="Image URL"
+              value={row.imageUrl}
+              onChange={(e) =>
+                updateRow(index, "imageUrl", e.target.value)
+              }
+              className="border rounded px-2 py-1"
+            />
+
+            {/* ✅ LIVE IMAGE PREVIEW */}
+            {row.imageUrl ? (
+              <img
+                src={row.imageUrl}
+                onClick={() => setPreviewImage(row.imageUrl)}
+                onError={(e) => (e.currentTarget.style.display = "none")}
+                className="w-14 h-14 object-cover rounded cursor-pointer border"
+              />
+            ) : (
+              <div className="w-14 h-14 border rounded flex items-center justify-center text-xs text-neutral-400">
+                No Image
+              </div>
+            )}
+
+            <input
+              type="number"
+              placeholder="Stock"
+              value={row.stock}
+              onChange={(e) => updateRow(index, "stock", e.target.value)}
+              className="border rounded px-2 py-1"
+            />
+
+            <button
+              onClick={() => removeRow(index)}
+              className="text-red-600 text-sm"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
 
         <button
-          disabled={loading}
+          onClick={addRow}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          + Add Row
+        </button>
+
+        <button
+          disabled={saving}
+          onClick={saveAll}
           className="w-full bg-black text-white rounded-lg py-2"
         >
-          {loading ? "Saving..." : "Add Product"}
+          {saving ? "Saving..." : "Save All Products"}
         </button>
-      </form>
-
-      {/* Categories */}
-      <div className="mt-12 space-y-10">
-        {sortedCategories.map(({ category, items }) => (
-          <CategoryBlock
-            key={category}
-            title={categoryTitles[category] || category}
-            items={items}
-            onDelete={deleteProduct}
-            onPreview={setPreviewImage}
-          />
-        ))}
       </div>
+
+      {/* ---------------- PRODUCTS ---------------- */}
+
+      {filter === "all" ? (
+        <div className="space-y-10">
+          {Object.entries(groupedProducts).map(([cat, items]) => (
+            <CategoryBlock
+              key={cat}
+              title={categoryTitles[cat] || cat}
+              items={items}
+              onDelete={deleteProduct}
+              onPreview={setPreviewImage}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {paginatedProducts.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-3 border rounded-lg p-2"
+            >
+              <img
+                src={p.imageUrl}
+                onClick={() => setPreviewImage(p.imageUrl)}
+                className="w-14 h-14 object-cover rounded cursor-pointer"
+              />
+
+              <div className="flex-1">
+                <p className="text-sm font-medium">{p.name}</p>
+                <p className="text-xs text-neutral-500 capitalize">
+                  ₦{p.price.toLocaleString()} • {p.category}
+                </p>
+              </div>
+
+              <button
+                onClick={() => deleteProduct(p.id)}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -422,9 +506,9 @@ function AdminDashboard() {
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="px-4 py-2 border rounded disabled:opacity-40"
+            className="px-4 py-1 border rounded disabled:opacity-40"
           >
-            ◀ Prev
+            Prev
           </button>
 
           <span className="text-sm">
@@ -434,9 +518,9 @@ function AdminDashboard() {
           <button
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="px-4 py-2 border rounded disabled:opacity-40"
+            className="px-4 py-1 border rounded disabled:opacity-40"
           >
-            Next ▶
+            Next 
           </button>
         </div>
       )}
