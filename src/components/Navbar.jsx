@@ -3,7 +3,7 @@ import { NavLink, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { logEvent } from "../lib/analytics"; // ✅ Analytics
 
-const WHATSAPP_NUMBER = "2349037291405";
+const WHATSAPP_NUMBER = "2349030388589";
 
 const linkClass = ({ isActive }) =>
   `px-3 py-2 rounded-lg text-sm font-medium transition

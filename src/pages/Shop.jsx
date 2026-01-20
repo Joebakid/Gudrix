@@ -11,13 +11,15 @@ import { logEvent } from "../lib/analytics";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function Shop({ page, setPage, pageSize = 8 }) {
-  const { category } = useParams(); // ✅ from URL
+  const { category } = useParams();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const [fullImage, setFullImage] = useState(null); // ✅ NEW
 
   const { addToCart } = useCart();
 
@@ -216,11 +218,11 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       )}
 
-      {/* Modal */}
+      {/* 🪟 Product Modal */}
       {selectedProduct && (
         <div
           onClick={() => setSelectedProduct(null)}
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 font-bold p-3.5 rounded-4xl"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -228,14 +230,18 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
           >
             <button
               onClick={() => setSelectedProduct(null)}
-              className="absolute top-3 right-3 text-sm"
+              className="absolute top-3 right-3 text-sm bg-gray-500 py-0.5 px-1.5 rounded"
             >
-              ✕
+              CLOSE
             </button>
 
+            {/* 👇 Click to view full image */}
             <img
               src={selectedProduct.imageUrl}
-              className="w-full h-60 object-cover rounded-lg mb-4"
+              onClick={() =>
+                setFullImage(selectedProduct.imageUrl)
+              }
+              className="w-full   object-cover rounded-lg mb-4 cursor-zoom-in"
             />
 
             <h3 className="font-bold text-lg">
@@ -260,6 +266,19 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
               Add to Cart
             </button>
           </div>
+        </div>
+      )}
+
+      {/* 🖼️ FULL IMAGE VIEWER */}
+      {fullImage && (
+        <div
+          onClick={() => setFullImage(null)}
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 cursor-zoom-out"
+        >
+          <img
+            src={fullImage}
+            className="max-h-[95vh] max-w-[95vw] object-contain rounded-lg shadow-xl"
+          />
         </div>
       )}
     </div>
