@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
-import { logEvent } from "../lib/analytics"; // ✅ Analytics
+import { logEvent } from "../lib/analytics";
+import { useParams, useNavigate } from "react-router-dom";
 
-export default function Shop({ page, setPage, pageSize = 2 }) {
+export default function Shop({ page, setPage, pageSize = 8 }) {
+  const { category } = useParams(); // ✅ from URL
+  const navigate = useNavigate();
+
   const [products, setProducts] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -19,31 +28,40 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
       orderBy("createdAt", "desc")
     );
 
-    const unsub = onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setProducts(items);
     });
-
-    return () => unsub();
   }, []);
+
+  // ✅ Sync URL → filter
+  useEffect(() => {
+    if (category) {
+      setFilter(category);
+    } else {
+      setFilter("all");
+    }
+  }, [category]);
 
   // 🔍 Filter + search + hide out-of-stock
   const filtered = products
-    .filter((p) => (filter === "all" ? true : p.category === filter))
+    .filter((p) =>
+      filter === "all" ? true : p.category === filter
+    )
     .filter((p) => (p.stock ?? 0) > 0)
     .filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase())
     );
 
-  // ✅ Reset page when filter or search changes
+  // ✅ Reset page when filter/search changes
   useEffect(() => {
     setPage(1);
   }, [filter, search, setPage]);
 
-  // ✅ Pagination logic
+  // ✅ Pagination
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
 
   const paginatedProducts = filtered.slice(
@@ -51,7 +69,7 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
     page * pageSize
   );
 
-  // ✅ Track product view (when modal opens)
+  // 🪟 Open product modal
   function openProduct(product) {
     setSelectedProduct(product);
 
@@ -63,7 +81,7 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
     });
   }
 
-  // ✅ Track add to cart
+  // 🛒 Add to cart
   function handleAddToCart(product) {
     addToCart(product);
 
@@ -73,6 +91,17 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
       price: product.price,
       category: product.category,
     });
+  }
+
+  // 🔗 Change filter + URL together
+  function changeFilter(next) {
+    setFilter(next);
+
+    if (next === "all") {
+      navigate("/shop");
+    } else {
+      navigate(`/shop/${next}`);
+    }
   }
 
   return (
@@ -95,7 +124,7 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
             {["all", "shoes", "slides", "heels", "jewelry"].map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => changeFilter(f)}
                 className={`px-4 py-2 rounded-lg text-sm border transition
                   ${
                     filter === f
@@ -141,7 +170,6 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
                 In stock
               </span>
 
-              {/* 🛒 Quick Add Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -156,14 +184,14 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
         ))}
       </div>
 
-      {/* Empty State */}
+      {/* Empty */}
       {filtered.length === 0 && (
         <p className="text-center text-neutral-500 mt-10">
           No products found.
         </p>
       )}
 
-      {/* ✅ Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-10">
           <button
@@ -171,7 +199,7 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
             onClick={() => setPage((p) => p - 1)}
             className="px-4 py-1 border rounded disabled:opacity-40"
           >
-             Prev
+            Prev
           </button>
 
           <span className="text-sm">
@@ -183,12 +211,12 @@ export default function Shop({ page, setPage, pageSize = 2 }) {
             onClick={() => setPage((p) => p + 1)}
             className="px-4 py-1 border rounded disabled:opacity-40"
           >
-            Next 
+            Next
           </button>
         </div>
       )}
 
-      {/* 🪟 Product Modal */}
+      {/* Modal */}
       {selectedProduct && (
         <div
           onClick={() => setSelectedProduct(null)}

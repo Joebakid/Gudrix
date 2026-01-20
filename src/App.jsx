@@ -11,7 +11,10 @@ import Navbar from "./components/Navbar";
 import Admin from "./pages/admin";
 import AdminLogin from "./pages/AdminLogin";
 import Shop from "./pages/Shop";
+import NotFound from "./pages/NotFound";
+
 import { Analytics } from "@vercel/analytics/react";
+
 
 // ✅ Gudrix custom analytics logger
 import { logEvent } from "./lib/analytics";
@@ -47,21 +50,35 @@ export default function App() {
         <Route path="/" element={<Navigate to="/shop" replace />} />
 
         {/* 🛒 Shop (pagination controlled here) */}
-        <Route
-          path="/shop"
-          element={
-            <Shop
-              page={shopPage}
-              setPage={setShopPage}
-              pageSize={8} // change to 8, 16 etc if you want
-            />
-          }
-        />
+       <Route
+  path="/shop"
+  element={
+    <Shop
+      page={shopPage}
+      setPage={setShopPage}
+      pageSize={8}
+    />
+  }
+/>
+
+<Route
+  path="/shop/:category"
+  element={
+    <Shop
+      page={shopPage}
+      setPage={setShopPage}
+      pageSize={8}
+    />
+  }
+/>
+
 
         <Route path="/login" element={<AdminLogin />} />
 
         {/* ✅ Admin routes untouched */}
         <Route path="/admin/*" element={<Admin />} />
+
+         <Route path="*" element={<NotFound />} />
       </Routes>
 
       {/* ✅ Vercel Analytics */}
