@@ -15,7 +15,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ NEW
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -39,7 +39,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       }));
 
       setProducts(items);
-      setLoading(false); // ✅ stop loader
+      setLoading(false);
     });
 
     return () => unsub();
@@ -138,9 +138,9 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
           />
         </div>
 
-        {/* Category Filters */}
+        {/* ✅ Category Filters */}
         <div className="flex flex-wrap gap-2">
-          {["all", "shoes", "slides", "heels", "jewelry"].map(
+          {["all", "shoes", "footwears", "heels", "jewelry"].map(
             (f) => (
               <button
                 key={f}

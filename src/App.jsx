@@ -1,3 +1,5 @@
+// import "./scripts/migrateSlides";
+
 import { useEffect, useState } from "react";
 import {
   BrowserRouter,

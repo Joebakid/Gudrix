@@ -132,7 +132,7 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   className="w-full border rounded px-2 py-1 text-sm"
                 >
                   <option value="shoes">Shoes</option>
-                  <option value="slides">Slides</option>
+                  <option value="footwears">Footwears</option>
                   <option value="heels">Heels</option>
                   <option value="jewelry">Jewelry</option>
                 </select>
@@ -292,7 +292,7 @@ function AdminDashboard() {
             price: Number(r.price),
             stock: Number(r.stock || 1),
             imageUrl: r.imageUrl.trim(),
-            category,
+            category, // shoes | footwears | heels | jewelry
             createdAt: serverTimestamp(),
             clientCreatedAt: Date.now(),
           })
@@ -324,7 +324,7 @@ function AdminDashboard() {
 
   const categoryTitles = {
     shoes: "👟 Shoes",
-    slides: "🩴 Slides",
+    footwears: "🩴 Footwears",
     heels: "👠 Heels",
     jewelry: "💍 Jewelry",
     others: "📦 Others",
@@ -359,7 +359,7 @@ function AdminDashboard() {
       >
         <option value="all">📦 All Products</option>
         <option value="shoes">👟 Shoes</option>
-        <option value="slides">🩴 Slides</option>
+        <option value="footwears">🩴 Footwears</option>
         <option value="heels">👠 Heels</option>
         <option value="jewelry">💍 Jewelry</option>
       </select>
@@ -374,7 +374,7 @@ function AdminDashboard() {
           className="border rounded px-3 py-2 w-full"
         >
           <option value="shoes">Shoes</option>
-          <option value="slides">Slides</option>
+          <option value="footwears">Footwears</option>
           <option value="heels">Heels</option>
           <option value="jewelry">Jewelry</option>
         </select>
@@ -520,7 +520,7 @@ function AdminDashboard() {
             onClick={() => setPage((p) => p + 1)}
             className="px-4 py-1 border rounded disabled:opacity-40"
           >
-            Next 
+            Next
           </button>
         </div>
       )}
