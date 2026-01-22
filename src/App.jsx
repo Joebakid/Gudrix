@@ -61,7 +61,7 @@ export default function App() {
                 <Shop
                   page={shopPage}
                   setPage={setShopPage}
-                  pageSize={8}
+                  pageSize={16}
                 />
               }
             />

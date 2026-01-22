@@ -17,6 +17,19 @@ import { Routes, Route, Link } from "react-router-dom";
 // ✅ Analytics page
 import AdminAnalytics from "./admin/AdminAnalytics";
 
+/* ---------------- DATE FORMATTER ---------------- */
+function formatDate(ts) {
+  if (!ts) return "—";
+
+  try {
+    const date =
+      ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+    return date.toLocaleString();
+  } catch {
+    return "—";
+  }
+}
+
 /* ---------------- Image Preview Modal ---------------- */
 function ImageModal({ src, onClose }) {
   if (!src) return null;
@@ -116,7 +129,6 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   className="w-full border rounded px-2 py-1 text-sm"
                 />
 
-                {/* ✅ Live preview while editing */}
                 {tempImageUrl && (
                   <img
                     src={tempImageUrl}
@@ -150,6 +162,12 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-neutral-500 capitalize">
                   ₦{p.price.toLocaleString()} • {p.category}
+                </p>
+
+                {/* ✅ Upload timestamp */}
+                <p className="text-[11px] text-neutral-400">
+                  Uploaded:{" "}
+                  {formatDate(p.createdAt || p.clientCreatedAt)}
                 </p>
               </>
             )}
@@ -186,7 +204,6 @@ function AdminDashboard() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 6;
 
-  // ✅ MULTI PRODUCT FORM STATE
   const [rows, setRows] = useState([
     { name: "", price: "", imageUrl: "", stock: 1 },
   ]);
@@ -204,7 +221,10 @@ function AdminDashboard() {
 
   // 📦 Products
   useEffect(() => {
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    const q = query(
+      collection(db, "products"),
+      orderBy("createdAt", "desc")
+    );
     return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((d) => ({
         id: d.id,
@@ -213,8 +233,6 @@ function AdminDashboard() {
       setProducts(items);
     });
   }, []);
-
-  /* ---------------- FILTER + SORT ---------------- */
 
   const filteredProducts = useMemo(() => {
     const base =
@@ -254,8 +272,6 @@ function AdminDashboard() {
     }, {});
   }, [paginatedProducts]);
 
-  /* ---------------- MULTI SAVE ---------------- */
-
   function updateRow(index, field, value) {
     setRows((rows) =>
       rows.map((r, i) => (i === index ? { ...r, [field]: value } : r))
@@ -263,7 +279,10 @@ function AdminDashboard() {
   }
 
   function addRow() {
-    setRows((r) => [...r, { name: "", price: "", imageUrl: "", stock: 1 }]);
+    setRows((r) => [
+      ...r,
+      { name: "", price: "", imageUrl: "", stock: 1 },
+    ]);
   }
 
   function removeRow(index) {
@@ -280,7 +299,8 @@ function AdminDashboard() {
       return;
     }
 
-    if (!window.confirm(`Save ${validRows.length} products?`)) return;
+    if (!window.confirm(`Save ${validRows.length} products?`))
+      return;
 
     try {
       setSaving(true);
@@ -292,14 +312,16 @@ function AdminDashboard() {
             price: Number(r.price),
             stock: Number(r.stock || 1),
             imageUrl: r.imageUrl.trim(),
-            category, // shoes | footwears | heels | jewelry
+            category,
             createdAt: serverTimestamp(),
             clientCreatedAt: Date.now(),
           })
         )
       );
 
-      setRows([{ name: "", price: "", imageUrl: "", stock: 1 }]);
+      setRows([
+        { name: "", price: "", imageUrl: "", stock: 1 },
+      ]);
       alert("✅ Products saved successfully!");
     } catch (err) {
       console.error(err);
@@ -387,7 +409,9 @@ function AdminDashboard() {
             <input
               placeholder="Name"
               value={row.name}
-              onChange={(e) => updateRow(index, "name", e.target.value)}
+              onChange={(e) =>
+                updateRow(index, "name", e.target.value)
+              }
               className="border rounded px-2 py-1"
             />
 
@@ -395,7 +419,9 @@ function AdminDashboard() {
               type="number"
               placeholder="Price"
               value={row.price}
-              onChange={(e) => updateRow(index, "price", e.target.value)}
+              onChange={(e) =>
+                updateRow(index, "price", e.target.value)
+              }
               className="border rounded px-2 py-1"
             />
 
@@ -408,12 +434,13 @@ function AdminDashboard() {
               className="border rounded px-2 py-1"
             />
 
-            {/* ✅ LIVE IMAGE PREVIEW */}
             {row.imageUrl ? (
               <img
                 src={row.imageUrl}
                 onClick={() => setPreviewImage(row.imageUrl)}
-                onError={(e) => (e.currentTarget.style.display = "none")}
+                onError={(e) =>
+                  (e.currentTarget.style.display = "none")
+                }
                 className="w-14 h-14 object-cover rounded cursor-pointer border"
               />
             ) : (
@@ -426,7 +453,9 @@ function AdminDashboard() {
               type="number"
               placeholder="Stock"
               value={row.stock}
-              onChange={(e) => updateRow(index, "stock", e.target.value)}
+              onChange={(e) =>
+                updateRow(index, "stock", e.target.value)
+              }
               className="border rounded px-2 py-1"
             />
 
@@ -486,6 +515,12 @@ function AdminDashboard() {
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-neutral-500 capitalize">
                   ₦{p.price.toLocaleString()} • {p.category}
+                </p>
+
+                {/* ✅ Upload timestamp */}
+                <p className="text-[11px] text-neutral-400">
+                  Uploaded:{" "}
+                  {formatDate(p.createdAt || p.clientCreatedAt)}
                 </p>
               </div>
 
