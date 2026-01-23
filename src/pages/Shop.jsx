@@ -15,6 +15,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ NEW
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -24,18 +25,30 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
   // 🔥 Fetch products
   useEffect(() => {
+    setLoading(true);
+
     const q = query(
       collection(db, "products"),
       orderBy("createdAt", "desc")
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setProducts(items);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProducts(items);
+        setLoading(false); // ✅ stop loader when data arrives
+      },
+      (error) => {
+        console.error("Firestore error:", error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
   }, []);
 
   // ✅ Sync URL → filter
@@ -140,60 +153,72 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       </div>
 
+      {/* ✅ LOADER */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-12 h-12 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+          <p className="text-sm text-neutral-500">
+            Loading products...
+          </p>
+        </div>
+      )}
+
       {/* ✅ GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {paginatedProducts.map((p) => (
-          <div
-            key={p.id}
-            onClick={() => openProduct(p)}
-            className="border rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col cursor-pointer"
-          >
-            <img
-              src={p.imageUrl}
-              alt={p.name}
-              className="w-full h-40 sm:h-44 object-cover"
-            />
+      {!loading && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          {paginatedProducts.map((p) => (
+            <div
+              key={p.id}
+              onClick={() => openProduct(p)}
+              className="border rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col cursor-pointer"
+            >
+              <img
+                src={p.imageUrl}
+                alt={p.name}
+                className="w-full h-40 sm:h-44 object-cover"
+              />
 
-            <div className="p-3 space-y-2 flex-1 flex flex-col">
-              <h4 className="font-semibold text-sm line-clamp-2">
-                {p.name}
-              </h4>
+              <div className="p-3 space-y-2 flex-1 flex flex-col">
+                <h4 className="font-semibold text-sm line-clamp-2">
+                  {p.name}
+                </h4>
 
-              <p className="text-sm font-medium">
-                ₦{p.price.toLocaleString()}
-              </p>
+                <p className="text-sm font-medium">
+                  ₦{p.price.toLocaleString()}
+                </p>
 
-              <span className="text-xs text-neutral-500 capitalize">
-                {p.category}
-              </span>
+                <span className="text-xs text-neutral-500 capitalize">
+                  {p.category}
+                </span>
 
-              <span className="text-xs text-green-600 font-medium">
-                In stock
-              </span>
+                <span className="text-xs text-green-600 font-medium">
+                  In stock
+                </span>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddToCart(p);
-                }}
-                className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
-              >
-                Add to Cart
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(p);
+                  }}
+                  className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
+                >
+                  Add to Cart
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Empty */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <p className="text-center text-neutral-500 mt-10">
           No products found.
         </p>
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex flex-wrap justify-center items-center gap-3 mt-10 text-sm">
           <button
             disabled={page === 1}

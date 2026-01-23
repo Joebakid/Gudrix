@@ -24,7 +24,15 @@ function formatDate(ts) {
   try {
     const date =
       ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
-    return date.toLocaleString();
+
+    return date.toLocaleString("en-US", {
+      month: "short",     // Jan
+      weekday: "long",    // Tuesday
+      year: "numeric",    // 2025
+      hour: "numeric",    // 10
+      minute: "2-digit",  // 42
+      hour12: true,
+    });
   } catch {
     return "—";
   }
