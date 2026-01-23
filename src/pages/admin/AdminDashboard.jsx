@@ -11,16 +11,11 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth, db } from "../lib/firebase";
-import { Routes, Route, Link } from "react-router-dom";
-
-// ✅ Analytics page
-import AdminAnalytics from "./admin/AdminAnalytics";
+import { auth, db } from "../../lib/firebase";
 
 /* ---------------- DATE FORMATTER ---------------- */
 function formatDate(ts) {
   if (!ts) return "—";
-
   try {
     const date =
       ts.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
@@ -133,7 +128,9 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   <img
                     src={tempImageUrl}
                     onClick={() => onPreview(tempImageUrl)}
-                    onError={(e) => (e.currentTarget.style.display = "none")}
+                    onError={(e) =>
+                      (e.currentTarget.style.display = "none")
+                    }
                     className="w-20 h-20 object-cover rounded border cursor-pointer"
                   />
                 )}
@@ -164,10 +161,8 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   ₦{p.price.toLocaleString()} • {p.category}
                 </p>
 
-                {/* ✅ Upload timestamp */}
                 <p className="text-[11px] text-neutral-400">
-                  Uploaded:{" "}
-                  {formatDate(p.createdAt || p.clientCreatedAt)}
+                  Uploaded: {formatDate(p.createdAt || p.clientCreatedAt)}
                 </p>
               </>
             )}
@@ -195,7 +190,7 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
 }
 
 /* ---------------- Admin Dashboard ---------------- */
-function AdminDashboard() {
+export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
@@ -210,7 +205,6 @@ function AdminDashboard() {
   const [category, setCategory] = useState("shoes");
   const [saving, setSaving] = useState(false);
 
-  // 🔐 Auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) window.location.href = "/login";
@@ -219,12 +213,8 @@ function AdminDashboard() {
     return () => unsub();
   }, []);
 
-  // 📦 Products
   useEffect(() => {
-    const q = query(
-      collection(db, "products"),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((d) => ({
         id: d.id,
@@ -253,8 +243,7 @@ function AdminDashboard() {
     });
   }, [products, filter]);
 
-  const totalPages =
-    Math.ceil(filteredProducts.length / PAGE_SIZE) || 1;
+  const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE) || 1;
 
   const paginatedProducts = useMemo(() => {
     return filteredProducts.slice(
@@ -279,10 +268,7 @@ function AdminDashboard() {
   }
 
   function addRow() {
-    setRows((r) => [
-      ...r,
-      { name: "", price: "", imageUrl: "", stock: 1 },
-    ]);
+    setRows((r) => [...r, { name: "", price: "", imageUrl: "", stock: 1 }]);
   }
 
   function removeRow(index) {
@@ -290,21 +276,14 @@ function AdminDashboard() {
   }
 
   async function saveAll() {
-    const validRows = rows.filter(
-      (r) => r.name && r.price && r.imageUrl
-    );
+    const validRows = rows.filter((r) => r.name && r.price && r.imageUrl);
 
-    if (!validRows.length) {
-      alert("Please fill at least one product row.");
-      return;
-    }
+    if (!validRows.length) return alert("Fill at least one row.");
 
-    if (!window.confirm(`Save ${validRows.length} products?`))
-      return;
+    if (!window.confirm(`Save ${validRows.length} products?`)) return;
 
     try {
       setSaving(true);
-
       await Promise.all(
         validRows.map((r) =>
           addDoc(collection(db, "products"), {
@@ -319,10 +298,8 @@ function AdminDashboard() {
         )
       );
 
-      setRows([
-        { name: "", price: "", imageUrl: "", stock: 1 },
-      ]);
-      alert("✅ Products saved successfully!");
+      setRows([{ name: "", price: "", imageUrl: "", stock: 1 }]);
+      alert("✅ Products saved!");
     } catch (err) {
       console.error(err);
       alert("❌ Failed to save products");
@@ -354,10 +331,7 @@ function AdminDashboard() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <ImageModal
-        src={previewImage}
-        onClose={() => setPreviewImage(null)}
-      />
+      <ImageModal src={previewImage} onClose={() => setPreviewImage(null)} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
@@ -370,7 +344,7 @@ function AdminDashboard() {
         </button>
       </div>
 
-      {/* FILTER */}
+      {/* Filter */}
       <select
         value={filter}
         onChange={(e) => {
@@ -379,16 +353,16 @@ function AdminDashboard() {
         }}
         className="w-full mb-6 border rounded-lg px-3 py-2"
       >
-        <option value="all">📦 All Products</option>
-        <option value="shoes">👟 Shoes</option>
-        <option value="footwears">🩴 Footwears</option>
-        <option value="heels">👠 Heels</option>
-        <option value="jewelry">💍 Jewelry</option>
+        <option value="all">All</option>
+        <option value="shoes">Shoes</option>
+        <option value="footwears">Footwears</option>
+        <option value="heels">Heels</option>
+        <option value="jewelry">Jewelry</option>
       </select>
 
-      {/* ---------------- MULTI PRODUCT FORM ---------------- */}
+      {/* Add Products */}
       <div className="border rounded-xl p-4 bg-white shadow space-y-4 mb-10">
-        <h3 className="font-semibold">➕ Add Multiple Products</h3>
+        <h3 className="font-semibold">Add Products</h3>
 
         <select
           value={category}
@@ -402,29 +376,20 @@ function AdminDashboard() {
         </select>
 
         {rows.map((row, index) => (
-          <div
-            key={index}
-            className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center"
-          >
+          <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-2">
             <input
               placeholder="Name"
               value={row.name}
-              onChange={(e) =>
-                updateRow(index, "name", e.target.value)
-              }
+              onChange={(e) => updateRow(index, "name", e.target.value)}
               className="border rounded px-2 py-1"
             />
-
             <input
               type="number"
               placeholder="Price"
               value={row.price}
-              onChange={(e) =>
-                updateRow(index, "price", e.target.value)
-              }
+              onChange={(e) => updateRow(index, "price", e.target.value)}
               className="border rounded px-2 py-1"
             />
-
             <input
               placeholder="Image URL"
               value={row.imageUrl}
@@ -433,32 +398,13 @@ function AdminDashboard() {
               }
               className="border rounded px-2 py-1"
             />
-
-            {row.imageUrl ? (
-              <img
-                src={row.imageUrl}
-                onClick={() => setPreviewImage(row.imageUrl)}
-                onError={(e) =>
-                  (e.currentTarget.style.display = "none")
-                }
-                className="w-14 h-14 object-cover rounded cursor-pointer border"
-              />
-            ) : (
-              <div className="w-14 h-14 border rounded flex items-center justify-center text-xs text-neutral-400">
-                No Image
-              </div>
-            )}
-
             <input
               type="number"
               placeholder="Stock"
               value={row.stock}
-              onChange={(e) =>
-                updateRow(index, "stock", e.target.value)
-              }
+              onChange={(e) => updateRow(index, "stock", e.target.value)}
               className="border rounded px-2 py-1"
             />
-
             <button
               onClick={() => removeRow(index)}
               className="text-red-600 text-sm"
@@ -468,10 +414,7 @@ function AdminDashboard() {
           </div>
         ))}
 
-        <button
-          onClick={addRow}
-          className="text-sm text-blue-600 hover:underline"
-        >
+        <button onClick={addRow} className="text-sm text-blue-600">
           + Add Row
         </button>
 
@@ -484,8 +427,7 @@ function AdminDashboard() {
         </button>
       </div>
 
-      {/* ---------------- PRODUCTS ---------------- */}
-
+      {/* Products */}
       {filter === "all" ? (
         <div className="space-y-10">
           {Object.entries(groupedProducts).map(([cat, items]) => (
@@ -510,23 +452,18 @@ function AdminDashboard() {
                 onClick={() => setPreviewImage(p.imageUrl)}
                 className="w-14 h-14 object-cover rounded cursor-pointer"
               />
-
               <div className="flex-1">
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-neutral-500 capitalize">
                   ₦{p.price.toLocaleString()} • {p.category}
                 </p>
-
-                {/* ✅ Upload timestamp */}
                 <p className="text-[11px] text-neutral-400">
-                  Uploaded:{" "}
-                  {formatDate(p.createdAt || p.clientCreatedAt)}
+                  Uploaded: {formatDate(p.createdAt || p.clientCreatedAt)}
                 </p>
               </div>
-
               <button
                 onClick={() => deleteProduct(p.id)}
-                className="text-xs text-red-600 hover:underline"
+                className="text-xs text-red-600"
               >
                 Delete
               </button>
@@ -537,51 +474,26 @@ function AdminDashboard() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-10">
+        <div className="flex justify-center gap-4 mt-10">
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="px-4 py-1 border rounded disabled:opacity-40"
+            className="px-4 py-1 border rounded"
           >
             Prev
           </button>
-
-          <span className="text-sm">
+          <span>
             Page {page} of {totalPages}
           </span>
-
           <button
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="px-4 py-1 border rounded disabled:opacity-40"
+            className="px-4 py-1 border rounded"
           >
             Next
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ---------------- Main Admin Router ---------------- */
-export default function Admin() {
-  return (
-    <div>
-      <div className="container-app">
-        <div className="flex gap-4 p-4 border-b">
-          <Link to="/admin" className="font-medium underline">
-            Dashboard
-          </Link>
-          <Link to="/admin/analytics" className="font-medium underline">
-            Analytics
-          </Link>
-        </div>
-      </div>
-
-      <Routes>
-        <Route index element={<AdminDashboard />} />
-        <Route path="analytics" element={<AdminAnalytics />} />
-      </Routes>
     </div>
   );
 }

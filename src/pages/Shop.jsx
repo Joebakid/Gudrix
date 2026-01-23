@@ -118,27 +118,29 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
           {/* Filters */}
           <div className="flex gap-2 flex-wrap">
-            {["all", "shoes", "slides", "heels", "jewelry"].map((f) => (
-              <button
-                key={f}
-                onClick={() => changeFilter(f)}
-                className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap
-                  ${
-                    filter === f
-                      ? "bg-black text-white"
-                      : "bg-white hover:bg-neutral-100"
-                  }`}
-              >
-                {f === "all"
-                  ? "All"
-                  : f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+            {["all", "shoes", "footwears", "heels", "jewelry"].map(
+              (f) => (
+                <button
+                  key={f}
+                  onClick={() => changeFilter(f)}
+                  className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap
+                    ${
+                      filter === f
+                        ? "bg-black text-white"
+                        : "bg-white hover:bg-neutral-100"
+                    }`}
+                >
+                  {f === "all"
+                    ? "All"
+                    : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              )
+            )}
           </div>
         </div>
       </div>
 
-      {/* ✅ GRID: Mobile responsive, Desktop locked to 4 columns */}
+      {/* ✅ GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
         {paginatedProducts.map((p) => (
           <div
