@@ -155,6 +155,9 @@ function CategoryBlock({ title, items, onDelete, onPreview }) {
                   <option value="footwears">Footwears</option>
                   <option value="heels">Heels</option>
                   <option value="jewelry">Jewelry</option>
+                   <option value="home-made-accessories">
+    Home Made Accessories
+  </option>
                 </select>
 
                 <button
@@ -352,13 +355,15 @@ function AdminDashboard() {
     );
   }
 
-  const categoryTitles = {
-    shoes: "Shoes",
-    footwears: "Footwears",
-    heels: "Heels",
-    jewelry: "Jewelry",
-    others: "Others",
-  };
+ const categoryTitles = {
+  shoes: "Shoes",
+  footwears: "Footwears",
+  heels: "Heels",
+  jewelry: "Jewelry",
+  "home-made-accessories": "Home Made Accessories",
+  others: "Others",
+};
+
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
@@ -407,6 +412,9 @@ function AdminDashboard() {
           <option value="footwears">Footwears</option>
           <option value="heels">Heels</option>
           <option value="jewelry">Jewelry</option>
+           <option value="home-made-accessories">
+    Home Made Accessories
+  </option>
         </select>
 
         {rows.map((row, index) => (

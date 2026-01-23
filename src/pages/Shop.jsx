@@ -14,8 +14,8 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);       // initial load
-  const [filterLoading, setFilterLoading] = useState(false); // category switch
+  const [loading, setLoading] = useState(true);            // initial load
+  const [filterLoading, setFilterLoading] = useState(false); // category switch spinner
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -48,13 +48,13 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
     return () => unsub();
   }, []);
 
-  // ✅ Sync URL → filter
+  // ✅ Sync URL → filter + show spinner on category change
   useEffect(() => {
     if (category !== filter) {
-      setFilterLoading(true);       // show spinner when switching category
+      setFilterLoading(true);
       setFilter(category || "all");
 
-      // small delay for smoother UX (feels intentional)
+      // small delay so spinner feels intentional
       const t = setTimeout(() => {
         setFilterLoading(false);
       }, 400);
@@ -73,7 +73,10 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       .filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase())
       )
-      .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      .sort(
+        (a, b) =>
+          Number(a.price || 0) - Number(b.price || 0)
+      );
   }, [products, filter, search]);
 
   // ✅ Reset page when filter/search changes
@@ -142,24 +145,31 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
           {/* Filters */}
           <div className="flex gap-2 flex-wrap">
-            {["all", "shoes", "footwears", "heels", "jewelry"].map(
-              (f) => (
-                <button
-                  key={f}
-                  onClick={() => changeFilter(f)}
-                  className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap
-                    ${
-                      filter === f
-                        ? "bg-black text-white"
-                        : "bg-white hover:bg-neutral-100"
-                    }`}
-                >
-                  {f === "all"
-                    ? "All"
-                    : f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              )
-            )}
+            {[
+              "all",
+              "shoes",
+              "footwears",
+              "heels",
+              "jewelry",
+              "home-made-accessories", // ✅ NEW CATEGORY
+            ].map((f) => (
+              <button
+                key={f}
+                onClick={() => changeFilter(f)}
+                className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap
+                  ${
+                    filter === f
+                      ? "bg-black text-white"
+                      : "bg-white hover:bg-neutral-100"
+                  }`}
+              >
+                {f === "all"
+                  ? "All"
+                  : f === "home-made-accessories"
+                  ? "Home Made Accessories"
+                  : f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -199,7 +209,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
                 </p>
 
                 <span className="text-xs text-neutral-500 capitalize">
-                  {p.category}
+                  {p.category.replace(/-/g, " ")}
                 </span>
 
                 <span className="text-xs text-green-600 font-medium">
