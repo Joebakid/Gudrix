@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   collection,
   onSnapshot,
   query,
-  orderBy,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
@@ -15,7 +14,8 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ NEW
+  const [loading, setLoading] = useState(true);       // initial load
+  const [filterLoading, setFilterLoading] = useState(false); // category switch
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -23,14 +23,11 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
   const { addToCart } = useCart();
 
-  // 🔥 Fetch products
+  // 🔥 Fetch products (initial)
   useEffect(() => {
     setLoading(true);
 
-    const q = query(
-      collection(db, "products"),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "products"));
 
     const unsub = onSnapshot(
       q,
@@ -40,7 +37,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
           ...doc.data(),
         }));
         setProducts(items);
-        setLoading(false); // ✅ stop loader when data arrives
+        setLoading(false);
       },
       (error) => {
         console.error("Firestore error:", error);
@@ -53,18 +50,31 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
   // ✅ Sync URL → filter
   useEffect(() => {
-    setFilter(category || "all");
-  }, [category]);
+    if (category !== filter) {
+      setFilterLoading(true);       // show spinner when switching category
+      setFilter(category || "all");
 
-  // 🔍 Filter + search + hide out-of-stock
-  const filtered = products
-    .filter((p) =>
-      filter === "all" ? true : p.category === filter
-    )
-    .filter((p) => (p.stock ?? 0) > 0)
-    .filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase())
-    );
+      // small delay for smoother UX (feels intentional)
+      const t = setTimeout(() => {
+        setFilterLoading(false);
+      }, 400);
+
+      return () => clearTimeout(t);
+    }
+  }, [category]); // eslint-disable-line
+
+  // 🔍 Filter + search + hide out-of-stock + SORT PRICE ASC
+  const filtered = useMemo(() => {
+    return products
+      .filter((p) =>
+        filter === "all" ? true : p.category === filter
+      )
+      .filter((p) => (p.stock ?? 0) > 0)
+      .filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase())
+      )
+      .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+  }, [products, filter, search]);
 
   // ✅ Reset page when filter/search changes
   useEffect(() => {
@@ -110,9 +120,10 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
   // 🔗 Change filter + URL together
   function changeFilter(next) {
-    setFilter(next);
     navigate(next === "all" ? "/shop" : `/shop/${next}`);
   }
+
+  const showLoader = loading || filterLoading;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -153,8 +164,8 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       </div>
 
-      {/* ✅ LOADER */}
-      {loading && (
+      {/* ✅ LOADER (initial + category change) */}
+      {showLoader && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="w-12 h-12 border-4 border-black/20 border-t-black rounded-full animate-spin" />
           <p className="text-sm text-neutral-500">
@@ -164,7 +175,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       )}
 
       {/* ✅ GRID */}
-      {!loading && (
+      {!showLoader && (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {paginatedProducts.map((p) => (
             <div
@@ -211,14 +222,14 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       )}
 
       {/* Empty */}
-      {!loading && filtered.length === 0 && (
+      {!showLoader && filtered.length === 0 && (
         <p className="text-center text-neutral-500 mt-10">
           No products found.
         </p>
       )}
 
       {/* Pagination */}
-      {!loading && totalPages > 1 && (
+      {!showLoader && totalPages > 1 && (
         <div className="flex flex-wrap justify-center items-center gap-3 mt-10 text-sm">
           <button
             disabled={page === 1}

@@ -387,11 +387,11 @@ function AdminDashboard() {
         }}
         className="w-full mb-6 border rounded-lg px-3 py-2"
       >
-        <option value="all">📦 All Products</option>
-        <option value="shoes">👟 Shoes</option>
-        <option value="footwears">🩴 Footwears</option>
-        <option value="heels">👠 Heels</option>
-        <option value="jewelry">💍 Jewelry</option>
+        <option value="all">All Products</option>
+        <option value="shoes">Shoes</option>
+        <option value="footwears"> Footwears</option>
+        <option value="heels">Heels</option>
+        <option value="jewelry">Jewelry</option>
       </select>
 
       {/* ---------------- MULTI PRODUCT FORM ---------------- */}
