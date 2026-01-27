@@ -9,21 +9,34 @@ import { useCart } from "../context/CartContext";
 import { logEvent } from "../lib/analytics";
 import { useParams, useNavigate } from "react-router-dom";
 
+/* ================= SIZE CONFIG ================= */
+const SIZE_CATEGORIES = [
+  "footwears",
+  "shoes",
+  "heels",
+  "home-made-accessories",
+];
+
+const AVAILABLE_SIZES = [40, 41, 42, 43, 44, 45, 46];
+/* ============================================== */
+
 export default function Shop({ page, setPage, pageSize = 8 }) {
   const { category } = useParams();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);            // initial load
-  const [filterLoading, setFilterLoading] = useState(false); // category switch spinner
+  const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [filter, setFilter] = useState(category || "all");
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [fullImage, setFullImage] = useState(null);
 
+  const [selectedSize, setSelectedSize] = useState(null); // 👟 SIZE STATE
+
   const { addToCart } = useCart();
 
-  // 🔥 Fetch products (initial)
+  /* ================= FETCH PRODUCTS ================= */
   useEffect(() => {
     setLoading(true);
 
@@ -48,13 +61,12 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
     return () => unsub();
   }, []);
 
-  // ✅ Sync URL → filter + show spinner on category change
+  /* ================= URL FILTER SYNC ================= */
   useEffect(() => {
     if (category !== filter) {
       setFilterLoading(true);
       setFilter(category || "all");
 
-      // small delay so spinner feels intentional
       const t = setTimeout(() => {
         setFilterLoading(false);
       }, 400);
@@ -63,7 +75,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
     }
   }, [category]); // eslint-disable-line
 
-  // 🔍 Filter + search + hide out-of-stock + SORT PRICE ASC
+  /* ================= FILTER + SEARCH + SORT ================= */
   const filtered = useMemo(() => {
     return products
       .filter((p) =>
@@ -79,17 +91,17 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       );
   }, [products, filter, search]);
 
-  // ✅ Reset page when filter/search changes
+  /* ================= RESET PAGE ================= */
   useEffect(() => {
     setPage(1);
   }, [filter, search, setPage]);
 
-  // ⬆️ Auto scroll to top when page changes
+  /* ================= AUTO SCROLL ================= */
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
-  // ✅ Pagination
+  /* ================= PAGINATION ================= */
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
 
   const paginatedProducts = filtered.slice(
@@ -97,9 +109,15 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
     page * pageSize
   );
 
-  // 🪟 Open product modal
+  /* ================= HELPERS ================= */
+  function productNeedsSize(product) {
+    return SIZE_CATEGORIES.includes(product.category);
+  }
+
+  /* ================= MODAL OPEN ================= */
   function openProduct(product) {
     setSelectedProduct(product);
+    setSelectedSize(null); // reset size when opening modal
 
     logEvent("product_view", {
       productId: product.id,
@@ -109,19 +127,34 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
     });
   }
 
-  // 🛒 Add to cart
+  /* ================= ADD TO CART ================= */
   function handleAddToCart(product) {
-    addToCart(product);
+    const needsSize = productNeedsSize(product);
+
+    if (needsSize && !selectedSize) {
+      alert("Please select a size before adding to cart.");
+      return;
+    }
+
+    const payload = {
+      ...product,
+      size: needsSize ? selectedSize : null,
+    };
+
+    addToCart(payload);
 
     logEvent("add_to_cart", {
       productId: product.id,
       name: product.name,
       price: product.price,
       category: product.category,
+      size: payload.size,
     });
+
+    setSelectedSize(null);
   }
 
-  // 🔗 Change filter + URL together
+  /* ================= FILTER NAV ================= */
   function changeFilter(next) {
     navigate(next === "all" ? "/shop" : `/shop/${next}`);
   }
@@ -130,7 +163,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
+      {/* ================= HEADER ================= */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Shop</h2>
 
@@ -151,7 +184,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
               "footwears",
               "heels",
               "jewelry",
-              "home-made-accessories", // ✅ NEW CATEGORY
+              "home-made-accessories",
             ].map((f) => (
               <button
                 key={f}
@@ -174,7 +207,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       </div>
 
-      {/* ✅ LOADER (initial + category change) */}
+      {/* ================= LOADER ================= */}
       {showLoader && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="w-12 h-12 border-4 border-black/20 border-t-black rounded-full animate-spin" />
@@ -184,7 +217,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       )}
 
-      {/* ✅ GRID */}
+      {/* ================= GRID ================= */}
       {!showLoader && (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {paginatedProducts.map((p) => (
@@ -219,11 +252,11 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddToCart(p);
+                    openProduct(p); // force modal so size can be selected
                   }}
                   className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
                 >
-                  Add to Cart
+                  View Product
                 </button>
               </div>
             </div>
@@ -231,14 +264,14 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       )}
 
-      {/* Empty */}
+      {/* ================= EMPTY ================= */}
       {!showLoader && filtered.length === 0 && (
         <p className="text-center text-neutral-500 mt-10">
           No products found.
         </p>
       )}
 
-      {/* Pagination */}
+      {/* ================= PAGINATION ================= */}
       {!showLoader && totalPages > 1 && (
         <div className="flex flex-wrap justify-center items-center gap-3 mt-10 text-sm">
           <button
@@ -263,7 +296,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       )}
 
-      {/* 🪟 Product Modal */}
+      {/* ================= PRODUCT MODAL ================= */}
       {selectedProduct && (
         <div
           onClick={() => setSelectedProduct(null)}
@@ -296,14 +329,45 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
               ₦{selectedProduct.price.toLocaleString()}
             </p>
 
-            <p className="text-xs text-neutral-500 mb-4">
+            <p className="text-xs text-neutral-500 mb-3">
               Stock: {selectedProduct.stock ?? 0}
             </p>
+
+            {/* 👟 SIZE SELECTOR */}
+            {productNeedsSize(selectedProduct) && (
+              <div className="mb-4">
+                <p className="text-sm font-medium mb-2">
+                  Select Size
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-3 py-1.5 rounded border text-sm
+                        ${
+                          selectedSize === size
+                            ? "bg-black text-white"
+                            : "bg-white hover:bg-neutral-100"
+                        }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => {
                 handleAddToCart(selectedProduct);
-                setSelectedProduct(null);
+                if (
+                  !productNeedsSize(selectedProduct) ||
+                  selectedSize
+                ) {
+                  setSelectedProduct(null);
+                }
               }}
               className="w-full bg-black text-white py-2 rounded-lg hover:opacity-90"
             >
@@ -313,7 +377,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         </div>
       )}
 
-      {/* 🖼️ FULL IMAGE VIEWER */}
+      {/* ================= FULL IMAGE ================= */}
       {fullImage && (
         <div
           onClick={() => setFullImage(null)}

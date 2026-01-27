@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { logEvent } from "../lib/analytics"; // ✅ Analytics
+import { logEvent } from "../lib/analytics";
+import { FiShoppingCart } from "react-icons/fi"; // ✅ Cart Icon
 
 const WHATSAPP_NUMBER = "2349030388589";
 
@@ -11,19 +12,24 @@ const linkClass = ({ isActive }) =>
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { cart, removeFromCart, totalItems, totalPrice, clearCart } =
-    useCart();
+  const {
+    cart,
+    removeFromCart,
+    totalItems,
+    totalPrice,
+    clearCart,
+  } = useCart();
 
   function checkout() {
     if (!cart.length) return;
 
-    // ✅ Track checkout click
     logEvent("checkout_click", {
       itemsCount: cart.length,
       cartTotal: totalPrice,
       products: cart.map((p) => ({
         id: p.id,
         name: p.name,
+        size: p.size,
         qty: p.qty,
         price: p.price,
       })),
@@ -33,9 +39,12 @@ export default function Navbar() {
       .map(
         (p, index) => `
 ${index + 1}. ${p.name}
+${p.size ? `Size: ${p.size}` : ""}
 Qty: ${p.qty}
-Unit Price: ₦${p.price.toLocaleString()}
-Subtotal: ₦${(p.qty * p.price).toLocaleString()}
+Unit Price: ₦${Number(p.price).toLocaleString()}
+Subtotal: ₦${(
+          p.qty * Number(p.price)
+        ).toLocaleString()}
 Image: ${p.imageUrl}
         `
       )
@@ -78,13 +87,14 @@ Total Amount: ₦${totalPrice.toLocaleString()}
               Admin
             </NavLink>
 
-            {/* Cart Button */}
+        
+            {/* 🛒 Cart Button */}
             <button
               onClick={() => setOpen(true)}
-              className="relative text-lg ml-1"
+              className="relative ml-1 p-2 rounded-lg hover:bg-neutral-100 transition"
               aria-label="Open cart"
             >
-              🛒
+              <FiShoppingCart className="text-xl" />
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full px-1 min-w-[18px] text-center">
                   {totalItems}
@@ -120,7 +130,7 @@ Total Amount: ₦${totalPrice.toLocaleString()}
             <div className="flex-1 space-y-3 overflow-auto">
               {cart.map((p) => (
                 <div
-                  key={p.id}
+                  key={`${p.id}-${p.size}`}
                   className="flex gap-3 text-sm items-center"
                 >
                   <img
@@ -133,13 +143,23 @@ Total Amount: ₦${totalPrice.toLocaleString()}
                     <p className="font-medium leading-tight">
                       {p.name}
                     </p>
+
+                    {p.size && (
+                      <p className="text-xs text-neutral-500">
+                        Size: {p.size}
+                      </p>
+                    )}
+
                     <p className="text-xs text-neutral-500">
-                      Qty: {p.qty} × ₦{p.price.toLocaleString()}
+                      Qty: {p.qty} × ₦
+                      {Number(p.price).toLocaleString()}
                     </p>
                   </div>
 
                   <button
-                    onClick={() => removeFromCart(p.id)}
+                    onClick={() =>
+                      removeFromCart(p.id, p.size)
+                    }
                     className="text-red-500 hover:text-red-600"
                     title="Remove item"
                   >
