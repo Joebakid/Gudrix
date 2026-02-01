@@ -13,8 +13,9 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import { Routes, Route, Link } from "react-router-dom";
 import AdminAnalytics from "./admin/AdminAnalytics";
+import ConfirmModal from "../components/ConfirmModal";
 
-/* ================= CLOUDINARY CONFIG ================= */
+/* ================= CLOUDINARY ================= */
 const CLOUD_NAME = "dtvainaia";
 const UPLOAD_PRESET = "gudrix_products";
 
@@ -29,14 +30,7 @@ function formatDate(ts) {
   }
 }
 
-/* ================= CLOUDINARY UPLOAD (DEBUG) ================= */
 async function uploadImage(file) {
-  console.log("📸 FILE OBJECT:", file);
-  console.log("📄 TYPE:", file?.type);
-  console.log("📏 SIZE (KB):", Math.round(file.size / 1024));
-  console.log("☁️ CLOUD:", CLOUD_NAME);
-  console.log("🎯 PRESET:", UPLOAD_PRESET);
-
   const form = new FormData();
   form.append("file", file);
   form.append("upload_preset", UPLOAD_PRESET);
@@ -47,18 +41,11 @@ async function uploadImage(file) {
   );
 
   const data = await res.json();
-
-  console.log("🔴 CLOUDINARY RESPONSE:", data);
-
-  if (!res.ok) {
-    throw new Error(data?.error?.message || "Upload failed");
-  }
-
-  console.log("✅ UPLOADED URL:", data.secure_url);
+  if (!res.ok) throw new Error(data?.error?.message || "Upload failed");
   return data.secure_url;
 }
 
-/* ================= IMAGE MODAL ================= */
+/* ================= IMAGE PREVIEW ================= */
 function ImageModal({ src, onClose }) {
   if (!src) return null;
   return (
@@ -74,19 +61,30 @@ function ImageModal({ src, onClose }) {
   );
 }
 
-/* ================= ADMIN DASHBOARD ================= */
+/* ================= DASHBOARD ================= */
 function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [preview, setPreview] = useState(null);
 
-  // single-product form
+  // form
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState(1);
   const [category, setCategory] = useState("shoes");
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // 🔥 universal modal state
+  const [modal, setModal] = useState({
+    open: false,
+    title: "",
+    message: "",
+    confirmText: "OK",
+    danger: false,
+    showCancel: false,
+    onConfirm: null,
+  });
 
   /* ---------- AUTH ---------- */
   useEffect(() => {
@@ -104,16 +102,23 @@ function AdminDashboard() {
     });
   }, []);
 
-  /* ---------- SAVE ONE PRODUCT ---------- */
+  /* ---------- SAVE PRODUCT ---------- */
   async function saveProduct() {
     if (!name || !price || !file) {
-      alert("Fill all fields and select an image.");
+      setModal({
+        open: true,
+        title: "Missing fields",
+        message: "Please fill all fields and select an image.",
+        confirmText: "OK",
+        danger: false,
+        showCancel: false,
+        onConfirm: closeModal,
+      });
       return;
     }
 
     try {
       setSaving(true);
-
       const imageUrl = await uploadImage(file);
 
       await addDoc(collection(db, "products"), {
@@ -131,18 +136,49 @@ function AdminDashboard() {
       setStock(1);
       setFile(null);
 
-      alert("✅ Product uploaded");
+      setModal({
+        open: true,
+        title: "Success",
+        message: "✅ Product uploaded successfully.",
+        confirmText: "OK",
+        danger: false,
+        showCancel: false,
+        onConfirm: closeModal,
+      });
     } catch (err) {
-      console.error("❌ FINAL ERROR:", err.message);
-      alert(`❌ Upload failed: ${err.message}`);
+      setModal({
+        open: true,
+        title: "Upload failed",
+        message: err.message,
+        confirmText: "OK",
+        danger: true,
+        showCancel: false,
+        onConfirm: closeModal,
+      });
     } finally {
       setSaving(false);
     }
   }
 
-  async function deleteProduct(id) {
-    if (!window.confirm("Delete this product?")) return;
-    await deleteDoc(doc(db, "products", id));
+  /* ---------- DELETE ---------- */
+  function requestDelete(id) {
+    setModal({
+      open: true,
+      title: "Delete Product",
+      message:
+        "This product will be permanently deleted. This action cannot be undone.",
+      confirmText: "Delete",
+      danger: true,
+      showCancel: true,
+      onConfirm: async () => {
+        await deleteDoc(doc(db, "products", id));
+        closeModal();
+      },
+    });
+  }
+
+  function closeModal() {
+    setModal((m) => ({ ...m, open: false }));
   }
 
   if (!user) {
@@ -156,6 +192,18 @@ function AdminDashboard() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <ImageModal src={preview} onClose={() => setPreview(null)} />
+
+      {/* UNIVERSAL MODAL */}
+      <ConfirmModal
+        open={modal.open}
+        title={modal.title}
+        message={modal.message}
+        confirmText={modal.confirmText}
+        danger={modal.danger}
+        showCancel={modal.showCancel}
+        onConfirm={modal.onConfirm}
+        onCancel={closeModal}
+      />
 
       <div className="flex justify-between mb-4">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
@@ -252,7 +300,7 @@ function AdminDashboard() {
             </div>
 
             <button
-              onClick={() => deleteProduct(p.id)}
+              onClick={() => requestDelete(p.id)}
               className="text-xs text-red-600"
             >
               Delete
