@@ -3,29 +3,19 @@ export default function ConfirmModal({
   title,
   message,
   confirmText = "OK",
-  cancelText = "Cancel",
   danger = false,
-  showCancel = true,
+  showCancel = false,
   onConfirm,
   onCancel,
 }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onCancel}
-      />
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+      <div className="bg-white rounded-xl w-full max-w-sm p-5 shadow-lg">
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
 
-      {/* modal */}
-      <div className="relative bg-white w-full max-w-sm rounded-xl shadow-xl p-5">
-        <h3 className="text-lg font-semibold mb-2">
-          {title}
-        </h3>
-
-        <p className="text-sm text-neutral-600 mb-5">
+        <p className="text-sm text-neutral-600 mb-6">
           {message}
         </p>
 
@@ -33,9 +23,9 @@ export default function ConfirmModal({
           {showCancel && (
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-sm border rounded-lg"
+              className="px-4 py-2 text-sm rounded-lg border"
             >
-              {cancelText}
+              Cancel
             </button>
           )}
 
