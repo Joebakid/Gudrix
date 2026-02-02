@@ -31,8 +31,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [fullImage, setFullImage] = useState(null);
-
-  const [selectedSize, setSelectedSize] = useState(null); // 👟 SIZE STATE
+  const [selectedSize, setSelectedSize] = useState(null);
 
   const { addToCart } = useCart();
 
@@ -81,7 +80,8 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       .filter((p) =>
         filter === "all" ? true : p.category === filter
       )
-      .filter((p) => (p.stock ?? 0) > 0)
+      // ✅ BEST FIX: assume in-stock if stock is missing
+      .filter((p) => (p.stock ?? 1) > 0)
       .filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase())
       )
@@ -117,7 +117,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   /* ================= MODAL OPEN ================= */
   function openProduct(product) {
     setSelectedProduct(product);
-    setSelectedSize(null); // reset size when opening modal
+    setSelectedSize(null);
 
     logEvent("product_view", {
       productId: product.id,
@@ -168,7 +168,6 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         <h2 className="text-2xl font-bold">Shop</h2>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {/* Search */}
           <input
             placeholder="Search products..."
             className="border rounded-lg px-3 py-2 text-sm w-full sm:w-64"
@@ -176,7 +175,6 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          {/* Filters */}
           <div className="flex gap-2 flex-wrap">
             {[
               "all",
@@ -209,7 +207,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
       {/* ================= LOADER ================= */}
       {showLoader && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
           <div className="w-12 h-12 border-4 border-black/20 border-t-black rounded-full animate-spin" />
           <p className="text-sm text-neutral-500">
             Loading products...
@@ -252,7 +250,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    openProduct(p); // force modal so size can be selected
+                    openProduct(p);
                   }}
                   className="mt-auto text-sm bg-black text-white py-1.5 rounded-lg hover:opacity-90"
                 >
@@ -330,10 +328,9 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
             </p>
 
             <p className="text-xs text-neutral-500 mb-3">
-              Stock: {selectedProduct.stock ?? 0}
+              Stock: {selectedProduct.stock ?? "Available"}
             </p>
 
-            {/* 👟 SIZE SELECTOR */}
             {productNeedsSize(selectedProduct) && (
               <div className="mb-4">
                 <p className="text-sm font-medium mb-2">
