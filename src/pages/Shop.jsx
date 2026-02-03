@@ -8,6 +8,7 @@ import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
 import { logEvent } from "../lib/analytics";
 import { useParams, useNavigate } from "react-router-dom";
+import Pagination from "../components/Pagination";
 
 /* ================= SIZE CONFIG ================= */
 const SIZE_CATEGORIES = [
@@ -80,7 +81,6 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       .filter((p) =>
         filter === "all" ? true : p.category === filter
       )
-      // ✅ BEST FIX: assume in-stock if stock is missing
       .filter((p) => (p.stock ?? 1) > 0)
       .filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase())
@@ -102,7 +102,8 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   }, [page]);
 
   /* ================= PAGINATION ================= */
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const totalPages =
+    Math.ceil(filtered.length / pageSize) || 1;
 
   const paginatedProducts = filtered.slice(
     (page - 1) * pageSize,
@@ -187,12 +188,11 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
               <button
                 key={f}
                 onClick={() => changeFilter(f)}
-                className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap
-                  ${
-                    filter === f
-                      ? "bg-black text-white"
-                      : "bg-white hover:bg-neutral-100"
-                  }`}
+                className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap ${
+                  filter === f
+                    ? "bg-black text-white"
+                    : "bg-white hover:bg-neutral-100"
+                }`}
               >
                 {f === "all"
                   ? "All"
@@ -270,28 +270,12 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       )}
 
       {/* ================= PAGINATION ================= */}
-      {!showLoader && totalPages > 1 && (
-        <div className="flex flex-wrap justify-center items-center gap-3 mt-10 text-sm">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="px-4 py-1 border rounded disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <span>
-            Page {page} of {totalPages}
-          </span>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className="px-4 py-1 border rounded disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
+      {!showLoader && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       )}
 
       {/* ================= PRODUCT MODAL ================= */}
@@ -342,12 +326,11 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-3 py-1.5 rounded border text-sm
-                        ${
-                          selectedSize === size
-                            ? "bg-black text-white"
-                            : "bg-white hover:bg-neutral-100"
-                        }`}
+                      className={`px-3 py-1.5 rounded border text-sm ${
+                        selectedSize === size
+                          ? "bg-black text-white"
+                          : "bg-white hover:bg-neutral-100"
+                      }`}
                     >
                       {size}
                     </button>

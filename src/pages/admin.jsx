@@ -15,10 +15,11 @@ import { auth, db } from "../lib/firebase";
 import { Routes, Route, Link } from "react-router-dom";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import ConfirmModal from "../components/ConfirmModal";
+import Pagination from "../components/Pagination";
 
 /* ================= CLOUDINARY ================= */
-const CLOUD_NAME = "dmo6gk6te"; // employer cloud name
-const UPLOAD_PRESET = "gudrix_products"; // unsigned preset
+const CLOUD_NAME = "dmo6gk6te";
+const UPLOAD_PRESET = "gudrix_products";
 
 /* ================= HELPERS ================= */
 function formatDate(ts) {
@@ -48,9 +49,12 @@ function ImageModal({ src, onClose }) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
     >
-      <img src={src} className="max-h-[90vh] rounded-lg" />
+      <img
+        src={src}
+        className="max-h-[90vh] max-w-full rounded-lg"
+      />
     </div>
   );
 }
@@ -196,12 +200,11 @@ function AdminDashboard() {
   if (!user) return null;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-4xl mx-auto px-4 py-10">
       <ImageModal src={preview} onClose={() => setPreview(null)} />
-
       <ConfirmModal {...modal} onCancel={closeModal} />
 
-      <div className="flex justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
         <button onClick={() => signOut(auth)} className="text-red-500">
           Logout
@@ -214,20 +217,22 @@ function AdminDashboard() {
           {editing ? "✏️ Edit Product" : "➕ Add Product"}
         </h3>
 
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
-          className="border px-3 py-2 rounded w-full"
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+            className="border px-3 py-2 rounded w-full"
+          />
 
-        <input
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="Price"
-          type="number"
-          className="border px-3 py-2 rounded w-full"
-        />
+          <input
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="Price"
+            type="number"
+            className="border px-3 py-2 rounded w-full"
+          />
+        </div>
 
         <select
           value={category}
@@ -238,12 +243,14 @@ function AdminDashboard() {
           <option value="heels">Heels</option>
           <option value="footwears">Footwears</option>
           <option value="jewelry">Jewelry</option>
-          <option value="home-made-accessories">Home Made Accessories</option>
+          <option value="home-made-accessories">
+            Home Made Accessories
+          </option>
         </select>
 
         <input type="file" onChange={(e) => setFile(e.target.files[0])} />
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={saveProduct}
             disabled={saving}
@@ -266,11 +273,14 @@ function AdminDashboard() {
       {/* PRODUCTS */}
       <div className="space-y-3">
         {paginated.map((p) => (
-          <div key={p.id} className="border rounded p-2 flex gap-3">
+          <div
+            key={p.id}
+            className="border rounded p-3 flex flex-col sm:flex-row gap-3"
+          >
             <img
               src={p.imageUrl}
               onClick={() => setPreview(p.imageUrl)}
-              className="w-14 h-14 object-cover rounded cursor-pointer"
+              className="w-16 h-16 object-cover rounded cursor-pointer"
             />
 
             <div className="flex-1">
@@ -283,7 +293,7 @@ function AdminDashboard() {
               </p>
             </div>
 
-            <div className="flex flex-col text-xs gap-1">
+            <div className="flex sm:flex-col gap-2 text-xs">
               <button
                 onClick={() => startEdit(p)}
                 className="text-blue-600"
@@ -301,26 +311,12 @@ function AdminDashboard() {
         ))}
       </div>
 
-      {/* PAGINATION */}
-      <div className="flex justify-center gap-3 mt-6">
-        <button
-          disabled={page === 1}
-          onClick={() => setPage((p) => p - 1)}
-        >
-          Prev
-        </button>
-
-        <span className="text-sm">
-          Page {page} / {totalPages}
-        </span>
-
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </button>
-      </div>
+      {/* PAGINATION (REUSABLE) */}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
@@ -329,9 +325,13 @@ function AdminDashboard() {
 export default function Admin() {
   return (
     <>
-      <div className="border-b p-4 flex gap-4">
-        <Link to="/admin" className="underline">Dashboard</Link>
-        <Link to="/admin/analytics" className="underline">Analytics</Link>
+      <div className="border-b p-4 flex gap-4 container-app">
+        <Link to="/admin" className="underline">
+          Dashboard
+        </Link>
+        <Link to="/admin/analytics" className="underline">
+          Analytics
+        </Link>
       </div>
 
       <Routes>
