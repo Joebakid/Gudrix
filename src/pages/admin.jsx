@@ -77,7 +77,7 @@ function AdminDashboard() {
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  /* universal modal */
+  /* modal */
   const [modal, setModal] = useState({
     open: false,
     title: "",
@@ -101,7 +101,10 @@ function AdminDashboard() {
 
   /* ---------- PRODUCTS ---------- */
   useEffect(() => {
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+    const q = query(
+      collection(db, "products"),
+      orderBy("createdAt", "desc")
+    );
     return onSnapshot(q, (snap) => {
       setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
@@ -115,7 +118,7 @@ function AdminDashboard() {
     return products.slice(start, start + PER_PAGE);
   }, [products, page]);
 
-  /* ---------- SAVE / UPDATE ---------- */
+  /* ---------- SAVE ---------- */
   async function saveProduct() {
     if (!name || !price) {
       setModal({
@@ -200,18 +203,22 @@ function AdminDashboard() {
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="max-w-4xl mx-auto px-4 py-10 overflow-x-hidden">
       <ImageModal src={preview} onClose={() => setPreview(null)} />
       <ConfirmModal {...modal} onCancel={closeModal} />
 
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
-        <button onClick={() => signOut(auth)} className="text-red-500">
+        <button
+          onClick={() => signOut(auth)}
+          className="text-red-500 self-start sm:self-auto"
+        >
           Logout
         </button>
       </div>
 
-      {/* ADD / EDIT */}
+      {/* FORM */}
       <div className="border rounded-xl p-4 bg-white shadow mb-10 space-y-3">
         <h3 className="font-semibold">
           {editing ? "✏️ Edit Product" : "➕ Add Product"}
@@ -224,7 +231,6 @@ function AdminDashboard() {
             placeholder="Name"
             className="border px-3 py-2 rounded w-full"
           />
-
           <input
             value={price}
             onChange={(e) => setPrice(e.target.value)}
@@ -275,17 +281,17 @@ function AdminDashboard() {
         {paginated.map((p) => (
           <div
             key={p.id}
-            className="border rounded p-3 flex flex-col sm:flex-row gap-3"
+            className="border rounded p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center"
           >
             <img
               src={p.imageUrl}
               onClick={() => setPreview(p.imageUrl)}
-              className="w-16 h-16 object-cover rounded cursor-pointer"
+              className="w-16 h-16 object-cover rounded cursor-pointer shrink-0"
             />
 
-            <div className="flex-1">
-              <p className="font-medium">{p.name}</p>
-              <p className="text-xs text-neutral-500">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{p.name}</p>
+              <p className="text-xs text-neutral-500 break-words">
                 ₦{p.price} • {p.category}
               </p>
               <p className="text-[11px] text-neutral-400">
@@ -311,7 +317,7 @@ function AdminDashboard() {
         ))}
       </div>
 
-      {/* PAGINATION (REUSABLE) */}
+      {/* PAGINATION */}
       <Pagination
         currentPage={page}
         totalPages={totalPages}
@@ -325,7 +331,7 @@ function AdminDashboard() {
 export default function Admin() {
   return (
     <>
-      <div className="border-b p-4 flex gap-4 container-app">
+      <div className="border-b p-4 flex flex-wrap gap-4">
         <Link to="/admin" className="underline">
           Dashboard
         </Link>

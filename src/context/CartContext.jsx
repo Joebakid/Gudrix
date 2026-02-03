@@ -1,9 +1,26 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useMemo } from "react";
+import ConfirmModal from "../components/ConfirmModal";
 
 const CartContext = createContext();
 
+const MIN_ORDER_AMOUNT = 10000;
+
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
+
+  /* ================= MODAL ================= */
+  const [modal, setModal] = useState({
+    open: false,
+    title: "",
+    message: "",
+    confirmText: "OK",
+    danger: false,
+    showCancel: false,
+    onConfirm: () => {},
+  });
+
+  const closeModal = () =>
+    setModal((m) => ({ ...m, open: false }));
 
   /* ================= ADD TO CART ================= */
   function addToCart(product) {
@@ -34,7 +51,7 @@ export function CartProvider({ children }) {
     });
   }
 
-  /* ================= REMOVE ITEM ================= */
+  /* ================= REMOVE ================= */
   function removeFromCart(id, size = null) {
     setCart((prev) =>
       prev.filter(
@@ -47,18 +64,42 @@ export function CartProvider({ children }) {
     );
   }
 
-  /* ================= CLEAR CART ================= */
   function clearCart() {
     setCart([]);
   }
 
   /* ================= TOTALS ================= */
-  const totalItems = cart.reduce((sum, p) => sum + p.qty, 0);
+  const totalItems = cart.reduce((s, p) => s + p.qty, 0);
 
-  const totalPrice = cart.reduce(
-    (sum, p) => sum + p.qty * Number(p.price || 0),
+  const subtotal = cart.reduce(
+    (s, p) => s + p.qty * Number(p.price || 0),
     0
   );
+
+  /* ================= WAYBILL ================= */
+  const waybillFee = useMemo(() => {
+    if (totalItems === 0) return 0;
+    if (totalItems === 1) return 3500;
+    if (totalItems === 2) return 4000;
+    return 5000;
+  }, [totalItems]);
+
+  const totalPrice = subtotal + waybillFee;
+
+  /* ================= CHECKOUT GUARD ================= */
+  function attemptCheckout() {
+    if (subtotal < MIN_ORDER_AMOUNT) {
+      setModal({
+        open: true,
+        title: "Minimum Order Required",
+        message: "You must order at least ₦10,000 before checkout.",
+        confirmText: "Continue Shopping",
+        onConfirm: closeModal,
+      });
+      return false;
+    }
+    return true;
+  }
 
   return (
     <CartContext.Provider
@@ -68,10 +109,14 @@ export function CartProvider({ children }) {
         removeFromCart,
         clearCart,
         totalItems,
+        subtotal,
+        waybillFee,
         totalPrice,
+        attemptCheckout,
       }}
     >
       {children}
+      <ConfirmModal {...modal} onCancel={closeModal} />
     </CartContext.Provider>
   );
 }
