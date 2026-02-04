@@ -21,6 +21,17 @@ const SIZE_CATEGORIES = [
 const AVAILABLE_SIZES = [40, 41, 42, 43, 44, 45, 46];
 /* ============================================== */
 
+/* ================= RANDOM SHUFFLE ================= */
+function shuffleArray(arr) {
+  const array = [...arr];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+/* ================================================ */
+
 export default function Shop({ page, setPage, pageSize = 8 }) {
   const { category } = useParams();
   const navigate = useNavigate();
@@ -77,18 +88,25 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
   /* ================= FILTER + SEARCH + SORT ================= */
   const filtered = useMemo(() => {
-    return products
+    let result = products
       .filter((p) =>
         filter === "all" ? true : p.category === filter
       )
       .filter((p) => (p.stock ?? 1) > 0)
       .filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase())
-      )
-      .sort(
-        (a, b) =>
-          Number(a.price || 0) - Number(b.price || 0)
       );
+
+    // 🔀 RANDOMIZE ONLY ON "ALL"
+    if (filter === "all") {
+      return shuffleArray(result);
+    }
+
+    // ⬇️ NORMAL SORT FOR CATEGORIES
+    return result.sort(
+      (a, b) =>
+        Number(a.price || 0) - Number(b.price || 0)
+    );
   }, [products, filter, search]);
 
   /* ================= RESET PAGE ================= */
