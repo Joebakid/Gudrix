@@ -14,7 +14,7 @@ export default function PaystackCheckout({ customer }) {
   const [loading, setLoading] = useState(false);
 
   const payWithPaystack = () => {
-    if (!customer.email || !customer.fullName || !customer.phone) {
+    if (!customer?.email || !customer?.fullName || !customer?.phone) {
       alert("Please complete your details before paying.");
       return;
     }
@@ -22,9 +22,9 @@ export default function PaystackCheckout({ customer }) {
     if (!attemptCheckout()) return;
 
     const handler = window.PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY, // must be pk_test or pk_live
       email: customer.email,
-      amount: totalPrice * 100,
+      amount: totalPrice * 100, // convert to kobo
       currency: "NGN",
       ref: Date.now().toString(),
 
@@ -59,7 +59,7 @@ export default function PaystackCheckout({ customer }) {
     try {
       setLoading(true);
 
-      const res = await fetch("/functions/v1/paystack-verify", {
+      const res = await fetch("/api/paystack-verify", {   // ✅ CHANGED HERE
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -72,13 +72,16 @@ export default function PaystackCheckout({ customer }) {
         }),
       });
 
+      if (!res.ok) throw new Error("Verification failed");
+
       const data = await res.json();
 
-      if (!data.success) throw new Error();
+      if (!data.success) throw new Error("Payment not successful");
 
       clearCart();
       alert("Payment successful 🎉");
     } catch (err) {
+      console.error(err);
       alert("Verification failed. Contact support.");
     } finally {
       setLoading(false);
