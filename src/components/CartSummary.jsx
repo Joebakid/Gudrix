@@ -11,9 +11,9 @@ export default function CartSummary({ closeDrawer }) {
     subtotal,
     waybillFee,
     totalPrice,
-    attemptCheckout,
-    clearCart,
   } = useCart();
+
+  const [paymentMethod, setPaymentMethod] = useState("paystack");
 
   const [customer, setCustomer] = useState({
     fullName: "",
@@ -28,8 +28,23 @@ export default function CartSummary({ closeDrawer }) {
     setCustomer({ ...customer, [e.target.name]: e.target.value });
   }
 
+  function handleWhatsAppCheckout() {
+    const message = `
+New Order from Gudrix:
+
+Name: ${customer.fullName}
+Phone: ${customer.phone}
+Address: ${customer.address}
+
+Total: ₦${totalPrice.toLocaleString()}
+    `;
+
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
+
   return (
-    <div className="border-t pt-3 space-y-3">
+    <div className="border-t pt-3 space-y-4">
 
       {/* TOTALS */}
       <div className="flex justify-between text-sm">
@@ -78,9 +93,46 @@ export default function CartSummary({ closeDrawer }) {
         </div>
       )}
 
-      {/* PAYSTACK */}
+      {/* PAYMENT SELECTOR */}
       {cart.length > 0 && (
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => setPaymentMethod("paystack")}
+            className={`flex-1 py-2 rounded-lg border text-sm ${
+              paymentMethod === "paystack"
+                ? "bg-black text-white"
+                : "bg-white"
+            }`}
+          >
+            Paystack
+          </button>
+
+          <button
+            onClick={() => setPaymentMethod("whatsapp")}
+            className={`flex-1 py-2 rounded-lg border text-sm ${
+              paymentMethod === "whatsapp"
+                ? "bg-black text-white"
+                : "bg-white"
+            }`}
+          >
+            WhatsApp
+          </button>
+        </div>
+      )}
+
+      {/* PAYSTACK */}
+      {paymentMethod === "paystack" && cart.length > 0 && (
         <PaystackCheckout customer={customer} />
+      )}
+
+      {/* WHATSAPP */}
+      {paymentMethod === "whatsapp" && cart.length > 0 && (
+        <button
+          onClick={handleWhatsAppCheckout}
+          className="w-full bg-green-600 text-white py-3 rounded-xl"
+        >
+          Checkout via WhatsApp
+        </button>
       )}
 
       {!canCheckout && (
