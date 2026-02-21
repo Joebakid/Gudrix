@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import Modal from "./Modal";
 
 export default function PaystackCheckout({ customer }) {
   const {
@@ -12,41 +13,35 @@ export default function PaystackCheckout({ customer }) {
   } = useCart();
 
   const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
 
   const payWithPaystack = () => {
     if (!customer?.email || !customer?.fullName || !customer?.phone) {
-      alert("Please complete your details before paying.");
+      setModal({
+        open: true,
+        type: "error",
+        title: "Incomplete Details",
+        message: "Please complete your details before paying.",
+      });
       return;
     }
 
     if (!attemptCheckout()) return;
 
     const handler = window.PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY, // must be pk_test or pk_live
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
       email: customer.email,
-      amount: totalPrice * 100, // convert to kobo
+      amount: totalPrice * 100,
       currency: "NGN",
       ref: Date.now().toString(),
-
-      metadata: {
-        custom_fields: [
-          {
-            display_name: "Full Name",
-            variable_name: "full_name",
-            value: customer.fullName,
-          },
-          {
-            display_name: "Phone",
-            variable_name: "phone",
-            value: customer.phone,
-          },
-        ],
-      },
-
       callback: function (response) {
         verifyPayment(response.reference);
       },
-
       onClose: function () {
         setLoading(false);
       },
@@ -59,7 +54,7 @@ export default function PaystackCheckout({ customer }) {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/paystack-verify", {   // ✅ CHANGED HERE
+      const res = await fetch("/api/paystack-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -72,29 +67,48 @@ export default function PaystackCheckout({ customer }) {
         }),
       });
 
-      if (!res.ok) throw new Error("Verification failed");
+      if (!res.ok) throw new Error();
 
       const data = await res.json();
-
-      if (!data.success) throw new Error("Payment not successful");
+      if (!data.success) throw new Error();
 
       clearCart();
-      alert("Payment successful 🎉");
+
+      setModal({
+        open: true,
+        type: "success",
+        title: "Payment Successful 🎉",
+        message: "Your order has been received successfully.",
+      });
     } catch (err) {
-      console.error(err);
-      alert("Verification failed. Contact support.");
+      setModal({
+        open: true,
+        type: "error",
+        title: "Payment Failed",
+        message: "Verification failed. Contact support.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <button
-      onClick={payWithPaystack}
-      disabled={loading}
-      className="w-full bg-black text-white py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition"
-    >
-      {loading ? "Processing..." : `Pay ₦${totalPrice.toLocaleString()}`}
-    </button>
+    <>
+      <button
+        onClick={payWithPaystack}
+        disabled={loading}
+        className="w-full bg-black text-white py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition"
+      >
+        {loading ? "Processing..." : `Pay ₦${totalPrice.toLocaleString()}`}
+      </button>
+
+      <Modal
+        isOpen={modal.open}
+        onClose={() => setModal({ ...modal, open: false })}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
+    </>
   );
 }
