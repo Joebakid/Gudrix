@@ -3,7 +3,7 @@ import ConfirmModal from "../components/ConfirmModal";
 
 const CartContext = createContext();
 
-const MIN_ORDER_AMOUNT = 1000;
+const MIN_ORDER_AMOUNT = 50;
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
