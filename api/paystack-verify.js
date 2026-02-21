@@ -45,12 +45,12 @@ export default async function handler(req, res) {
         <p><strong>Total:</strong> ₦${total}</p>
         <hr/>
         <h3>Items:</h3>
-        ${cart
-          .map(
-            (item) =>
-              `<p>${item.name} - Qty: ${item.quantity}</p>`
-          )
-          .join("")}
+      ${cart
+  .map(
+    (item) =>
+      `<p>${item.name} - Qty: ${item.quantity || 1}</p>`
+  )
+  .join("")}
       `,
     });
 

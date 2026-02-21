@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
-import Modal from "./Modal";
+import ConfirmModal from "./ConfirmModal";
 
 export default function PaystackCheckout({ customer }) {
   const {
@@ -13,25 +13,27 @@ export default function PaystackCheckout({ customer }) {
   } = useCart();
 
   const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState({
-    open: false,
-    type: "success",
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({
     title: "",
     message: "",
+    success: false,
   });
 
   const payWithPaystack = () => {
     if (!customer?.email || !customer?.fullName || !customer?.phone) {
-      setModal({
-        open: true,
-        type: "error",
+      setModalData({
         title: "Incomplete Details",
         message: "Please complete your details before paying.",
+        success: false,
       });
+      setModalOpen(true);
       return;
     }
 
     if (!attemptCheckout()) return;
+
+    setLoading(true);
 
     const handler = window.PaystackPop.setup({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
@@ -52,8 +54,6 @@ export default function PaystackCheckout({ customer }) {
 
   const verifyPayment = async (reference) => {
     try {
-      setLoading(true);
-
       const res = await fetch("/api/paystack-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,24 +72,33 @@ export default function PaystackCheckout({ customer }) {
       const data = await res.json();
       if (!data.success) throw new Error();
 
-      clearCart();
-
-      setModal({
-        open: true,
-        type: "success",
+      // Show success modal FIRST
+      setModalData({
         title: "Payment Successful 🎉",
         message: "Your order has been received successfully.",
+        success: true,
       });
+
+      setModalOpen(true);
     } catch (err) {
-      setModal({
-        open: true,
-        type: "error",
+      setModalData({
         title: "Payment Failed",
         message: "Verification failed. Contact support.",
+        success: false,
       });
+      setModalOpen(true);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleModalConfirm = () => {
+    // If payment was successful, clear cart AFTER user sees modal
+    if (modalData.success) {
+      clearCart();
+    }
+
+    setModalOpen(false);
   };
 
   return (
@@ -102,12 +111,12 @@ export default function PaystackCheckout({ customer }) {
         {loading ? "Processing..." : `Pay ₦${totalPrice.toLocaleString()}`}
       </button>
 
-      <Modal
-        isOpen={modal.open}
-        onClose={() => setModal({ ...modal, open: false })}
-        title={modal.title}
-        message={modal.message}
-        type={modal.type}
+      <ConfirmModal
+        open={modalOpen}
+        title={modalData.title}
+        message={modalData.message}
+        confirmText="OK"
+        onConfirm={handleModalConfirm}
       />
     </>
   );
