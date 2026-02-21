@@ -16,6 +16,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
+import AdminOrders from "./admin/AdminOrders";
 
 /* ================= CLOUDINARY ================= */
 const CLOUD_NAME = "dmo6gk6te";
@@ -405,6 +406,13 @@ export default function Admin() {
       </Link>
 
       <Link
+        to="/admin/orders"
+        className="text-sm font-medium text-neutral-700 hover:text-black transition"
+      >
+        Orders
+      </Link>
+
+      <Link
         to="/admin/analytics"
         className="text-sm font-medium text-neutral-700 hover:text-black transition"
       >
@@ -415,6 +423,7 @@ export default function Admin() {
 
   <Routes>
     <Route index element={<AdminDashboard />} />
+    <Route path="orders" element={<AdminOrders />} />
     <Route path="analytics" element={<AdminAnalytics />} />
   </Routes>
 </>
