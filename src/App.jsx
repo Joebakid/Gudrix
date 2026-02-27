@@ -1,5 +1,3 @@
-// import "./scripts/migrateSlides";
-
 import { useEffect, useState } from "react";
 import {
   BrowserRouter,
@@ -10,11 +8,15 @@ import {
 } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import Footer from "./pages/Footer"; 
+import ScrollToTop from "./components/ScrollToTop"; 
+
 import Admin from "./pages/admin";
 import AdminLogin from "./pages/AdminLogin";
 import Shop from "./pages/Shop";
 import NotFound from "./pages/NotFound";
-import Footer from "./pages/Footer";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 import { Analytics } from "@vercel/analytics/react";
 
@@ -42,6 +44,9 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {/* ✅ Auto Scroll To Top on Route Change */}
+      <ScrollToTop />
+
       <div className="min-h-screen flex flex-col">
         {/* ✅ Gudrix Analytics */}
         <PageTracker />
@@ -77,13 +82,20 @@ export default function App() {
               }
             />
 
+            {/* 📄 Legal Pages */}
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+
+            {/* 🔐 Admin */}
             <Route path="/login" element={<AdminLogin />} />
             <Route path="/admin/*" element={<Admin />} />
+
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 
-        {/* ✅ Sticky Footer */}
+        {/* ✅ Footer */}
         <Footer />
 
         {/* ✅ Vercel Analytics */}
