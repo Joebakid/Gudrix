@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   collection,
   addDoc,
@@ -62,6 +62,7 @@ function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [preview, setPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   /* pagination */
   const PER_PAGE = 6;
@@ -107,9 +108,10 @@ function AdminDashboard() {
       collection(db, "products"),
       orderBy("createdAt", "desc")
     );
-    return onSnapshot(q, (snap) => {
+    const unsubscribe = onSnapshot(q, (snap) => {
       setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
+    return () => unsubscribe();
   }, []);
 
   /* ---------- PAGINATION ---------- */
@@ -132,9 +134,12 @@ function AdminDashboard() {
       return;
     }
 
+    let cancelled = false;
     try {
       setSaving(true);
       const imageUrl = await uploadImage(file);
+
+      if (cancelled) return;
 
       await addDoc(collection(db, "products"), {
         name,
@@ -148,7 +153,10 @@ function AdminDashboard() {
       setPrice("");
       setCategory("shoes");
       setFile(null);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
+      if (cancelled) return;
       setModal({
         open: true,
         title: "Error",
@@ -157,8 +165,12 @@ function AdminDashboard() {
         onConfirm: closeModal,
       });
     } finally {
-      setSaving(false);
+      if (!cancelled) setSaving(false);
     }
+
+    return () => {
+      cancelled = true;
+    };
   }
 
   /* ---------- INLINE EDIT ---------- */
@@ -262,7 +274,7 @@ function AdminDashboard() {
           </option>
         </select>
 
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+        <input type="file" ref={fileInputRef} onChange={(e) => setFile(e.target.files[0])} />
 
         <button
           onClick={saveProduct}
