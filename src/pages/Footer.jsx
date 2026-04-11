@@ -38,7 +38,7 @@ export default function Footer({
     {/* Legal Links */}
     <div className="flex items-center gap-6 text-[11px]">
       <Link to="/terms" className="transition hover:text-white">
-        Terms & Conditions
+        Term & Condition
       </Link>
 
       <Link to="/privacy" className="transition hover:text-white">
