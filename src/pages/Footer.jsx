@@ -88,7 +88,7 @@ export default function Footer({
   {/* Right - Credit */}
   <div className="flex justify-center sm:justify-end">
     <a
-      href="https://www.josephbawo.tech/"
+      href="https://www.josephbawo.fun/"
       target="_blank"
       rel="noreferrer noopener"
       aria-label="Visit Joseph Bawo's website"
