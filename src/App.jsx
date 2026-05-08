@@ -33,10 +33,9 @@ function PageTracker() {
   return null;
 }
 
-// ✅ Fetches isAdmin from Firestore and guards the /admin route
 function ProtectedAdminRoute() {
   const { user, loading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(null); // null = still checking
+  const [isAdmin, setIsAdmin] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -49,13 +48,35 @@ function ProtectedAdminRoute() {
   }, [user]);
 
   if (loading || isAdmin === null) {
-    return <div className="p-10 text-center">Checking permissions...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Checking permissions...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/shop" replace />;
 
   return <Admin />;
+}
+
+function ProtectedUserRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
 }
 
 export default function App() {
@@ -82,8 +103,15 @@ export default function App() {
               element={<Shop page={shopPage} setPage={setShopPage} pageSize={16} />}
             />
 
-            {/* 👤 User Account Route */}
-            <Route path="/account" element={<Account />} />
+            {/* 👤 User Account Route — protected */}
+            <Route
+              path="/account"
+              element={
+                <ProtectedUserRoute>
+                  <Account />
+                </ProtectedUserRoute>
+              }
+            />
 
             {/* 📄 Legal Pages */}
             <Route path="/terms" element={<Terms />} />

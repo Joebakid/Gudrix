@@ -9,15 +9,15 @@ import {
   query,
   orderBy,
   updateDoc,
-  getDoc,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import AdminAnalytics from "./admin/AdminAnalytics";
+import AdminOrders from "./admin/AdminOrders";
+import AdminUsers from "./admin/AdminUsers";
 import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
-import AdminOrders from "./admin/AdminOrders";
 
 /* ================= HELPERS ================= */
 function formatDate(ts) {
@@ -49,7 +49,6 @@ function ImageModal({ src, onClose }) {
 }
 
 /* ================= DASHBOARD ================= */
-// ✅ No auth guard here — ProtectedAdminRoute in App.jsx handles it before this mounts
 function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [preview, setPreview] = useState(null);
@@ -68,13 +67,13 @@ function AdminDashboard() {
   const [modal, setModal] = useState({ open: false, title: "", message: "", onConfirm: () => {} });
   const closeModal = () => setModal((m) => ({ ...m, open: false }));
 
-  /* ---------- FETCH PRODUCTS ---------- */
+  /* ── Fetch products ── */
   useEffect(() => {
     const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snap) => setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
   }, []);
 
-  /* ---------- ACTIONS ---------- */
+  /* ── Actions ── */
   async function saveProduct() {
     if (!name || !price || !file) return alert("All fields required");
     try {
@@ -101,6 +100,7 @@ function AdminDashboard() {
       open: true,
       title: "Delete Product",
       message: "Are you sure you want to delete this product?",
+      showCancel: true,
       onConfirm: async () => {
         await deleteDoc(doc(db, "products", id));
         closeModal();
@@ -136,13 +136,13 @@ function AdminDashboard() {
   const totalPages = Math.ceil(products.length / PAGE_SIZE);
   const paginated = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  /* ---------- RENDER ---------- */
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <ConfirmModal
         open={modal.open}
         title={modal.title}
         message={modal.message}
+        showCancel={modal.showCancel}
         onConfirm={modal.onConfirm}
         onCancel={closeModal}
       />
@@ -177,9 +177,10 @@ function AdminDashboard() {
             onChange={(e) => setCategory(e.target.value)}
           >
             <option value="shoes">Shoes</option>
-            <option value="shirts">Shirts</option>
-            <option value="pants">Pants</option>
-            <option value="accessories">Accessories</option>
+            <option value="footwears">Footwears</option>
+            <option value="heels">Heels</option>
+            <option value="jewelry">Jewelry</option>
+            <option value="home-made-accessories">Home Made Accessories</option>
           </select>
           <input
             ref={fileInputRef}
@@ -189,9 +190,6 @@ function AdminDashboard() {
             onChange={(e) => setFile(e.target.files[0])}
           />
         </div>
-        {preview && (
-          <img src={preview} alt="Preview" className="mt-3 h-24 rounded-lg object-cover" />
-        )}
         <button
           onClick={saveProduct}
           disabled={saving}
@@ -205,7 +203,6 @@ function AdminDashboard() {
       <div className="space-y-3">
         {paginated.map((product) =>
           editingId === product.id ? (
-            /* ── EDIT ROW ── */
             <div key={product.id} className="border rounded-2xl p-4 bg-yellow-50 space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <input
@@ -225,9 +222,10 @@ function AdminDashboard() {
                   onChange={(e) => setEditData({ ...editData, category: e.target.value })}
                 >
                   <option value="shoes">Shoes</option>
-                  <option value="shirts">Shirts</option>
-                  <option value="pants">Pants</option>
-                  <option value="accessories">Accessories</option>
+                  <option value="footwears">Footwears</option>
+                  <option value="heels">Heels</option>
+                  <option value="jewelry">Jewelry</option>
+                  <option value="home-made-accessories">Home Made Accessories</option>
                 </select>
               </div>
               <input
@@ -253,7 +251,6 @@ function AdminDashboard() {
               </div>
             </div>
           ) : (
-            /* ── DISPLAY ROW ── */
             <div key={product.id} className="border rounded-2xl p-4 flex items-center gap-4 bg-white">
               <img
                 src={product.imageUrl}
@@ -298,27 +295,43 @@ function AdminDashboard() {
   );
 }
 
+/* ================= NAV LINK ================= */
+function NavLink({ to, children }) {
+  const location = useLocation();
+  const isActive = location.pathname === to ||
+    (to !== "/admin" && location.pathname.startsWith(to));
+
+  return (
+    <Link
+      to={to}
+      className={`text-sm font-bold transition pb-0.5 ${
+        isActive
+          ? "border-b-2 border-black opacity-100"
+          : "opacity-50 hover:opacity-80"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 /* ================= ROUTER ================= */
 export default function Admin() {
   return (
     <>
       <div className="border-b bg-white sticky top-0 z-30 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-8">
-          <Link to="/admin" className="text-sm font-bold hover:opacity-60 transition">
-            Dashboard
-          </Link>
-          <Link to="/admin/orders" className="text-sm font-bold hover:opacity-60 transition">
-            Orders
-          </Link>
-          <Link to="/admin/analytics" className="text-sm font-bold hover:opacity-60 transition">
-            Analytics
-          </Link>
+          <NavLink to="/admin">Dashboard</NavLink>
+          <NavLink to="/admin/orders">Orders</NavLink>
+          <NavLink to="/admin/analytics">Analytics</NavLink>
+          <NavLink to="/admin/users">Users</NavLink>
         </div>
       </div>
       <Routes>
         <Route index element={<AdminDashboard />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="users" element={<AdminUsers />} />
       </Routes>
     </>
   );
