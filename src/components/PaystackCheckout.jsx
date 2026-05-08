@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext"; // Import Auth
 import ConfirmModal from "./ConfirmModal";
 
 export default function PaystackCheckout({ customer }) {
@@ -12,6 +13,7 @@ export default function PaystackCheckout({ customer }) {
     attemptCheckout,
   } = useCart();
 
+  const { user } = useAuth(); // Get current logged in user
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState({
@@ -40,7 +42,7 @@ export default function PaystackCheckout({ customer }) {
       email: customer.email,
       amount: totalPrice * 100,
       currency: "NGN",
-      ref: Date.now().toString(),
+      ref: `GRX-${Date.now()}`,
       callback: function (response) {
         verifyPayment(response.reference);
       },
@@ -64,18 +66,18 @@ export default function PaystackCheckout({ customer }) {
           waybill: waybillFee,
           total: totalPrice,
           customer,
+          userId: user?.uid || null, // Link to User ID if logged in
         }),
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Verification failed");
 
       const data = await res.json();
-      if (!data.success) throw new Error();
+      if (!data.success) throw new Error("Payment not successful");
 
-      // Show success modal FIRST
       setModalData({
         title: "Payment Successful 🎉",
-        message: "Your order has been received successfully.",
+        message: "Your order has been received and added to your account history.",
         success: true,
       });
 
@@ -83,7 +85,7 @@ export default function PaystackCheckout({ customer }) {
     } catch (err) {
       setModalData({
         title: "Payment Failed",
-        message: "Verification failed. Contact support.",
+        message: err.message || "Verification failed. Contact support.",
         success: false,
       });
       setModalOpen(true);
@@ -93,11 +95,9 @@ export default function PaystackCheckout({ customer }) {
   };
 
   const handleModalConfirm = () => {
-    // If payment was successful, clear cart AFTER user sees modal
     if (modalData.success) {
       clearCart();
     }
-
     setModalOpen(false);
   };
 

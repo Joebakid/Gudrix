@@ -1,13 +1,16 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
-import App from "./App";
-import "../globals.css";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import "../globals.css"; // Correct path to root CSS
+import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 
-createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <CartProvider>
-    <App />
-    </CartProvider>
+    <AuthProvider> {/* Providers must wrap the App */}
+      <CartProvider>
+        <App />
+      </CartProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

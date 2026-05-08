@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { NavLink, Link } from "react-router-dom";
-import { FiShoppingCart } from "react-icons/fi";
+import { NavLink, Link, useNavigate } from "react-router-dom"; // Added useNavigate
+import { FiShoppingCart, FiLogOut } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
+import { auth } from "../lib/firebase";
+import { signOut } from "firebase/auth";
 import CartDrawer from "./CartDrawer";
 
 const linkClass = ({ isActive }) =>
@@ -11,6 +14,18 @@ const linkClass = ({ isActive }) =>
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { totalItems } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate(); // Initialize the navigate hook
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // ✅ Redirect to login screen immediately after sign out
+      navigate("/login"); 
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <>
@@ -25,9 +40,31 @@ export default function Navbar() {
               Shop
             </NavLink>
 
-            <NavLink to="/admin" className={linkClass}>
-              Admin
-            </NavLink>
+            {user ? (
+              <>
+                <NavLink to="/account" className={linkClass}>
+                  Account
+                </NavLink>
+                <button 
+                  onClick={handleLogout}
+                  className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition"
+                  title="Logout"
+                >
+                  <FiLogOut className="text-lg" />
+                </button>
+              </>
+            ) : (
+              <NavLink to="/login" className={linkClass}>
+                Login
+              </NavLink>
+            )}
+
+            {/* Admin link only visible to the specific admin email */}
+            {user?.email === "01gudrix@gmail.com" && (
+              <NavLink to="/admin" className={linkClass}>
+                Admin
+              </NavLink>
+            )}
 
             <button
               onClick={() => setOpen(true)}
