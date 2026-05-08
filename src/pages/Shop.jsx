@@ -6,9 +6,12 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { logEvent } from "../lib/analytics";
 import { useParams, useNavigate } from "react-router-dom";
 import Pagination from "../components/Pagination";
+import { FiHeart } from "react-icons/fi";
+import { FaHeart } from "react-icons/fa";
 
 /* ================= SIZE CONFIG ================= */
 const SIZE_CATEGORIES = [
@@ -19,7 +22,6 @@ const SIZE_CATEGORIES = [
 ];
 
 const AVAILABLE_SIZES = [40, 41, 42, 43, 44, 45, 46];
-/* ============================================== */
 
 /* ================= RANDOM SHUFFLE ================= */
 function shuffleArray(arr) {
@@ -30,7 +32,6 @@ function shuffleArray(arr) {
   }
   return array;
 }
-/* ================================================ */
 
 export default function Shop({ page, setPage, pageSize = 8 }) {
   const { category } = useParams();
@@ -46,13 +47,12 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   const [selectedSize, setSelectedSize] = useState(null);
 
   const { addToCart } = useCart();
+  const { user, starred, toggleStar } = useAuth();
 
   /* ================= FETCH PRODUCTS ================= */
   useEffect(() => {
     setLoading(true);
-
     const q = query(collection(db, "products"));
-
     const unsub = onSnapshot(
       q,
       (snapshot) => {
@@ -68,7 +68,6 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
         setLoading(false);
       }
     );
-
     return () => unsub();
   }, []);
 
@@ -77,11 +76,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
     if (category !== filter) {
       setFilterLoading(true);
       setFilter(category || "all");
-
-      const t = setTimeout(() => {
-        setFilterLoading(false);
-      }, 400);
-
+      const t = setTimeout(() => setFilterLoading(false), 400);
       return () => clearTimeout(t);
     }
   }, [category]); // eslint-disable-line
@@ -89,24 +84,12 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   /* ================= FILTER + SEARCH + SORT ================= */
   const filtered = useMemo(() => {
     let result = products
-      .filter((p) =>
-        filter === "all" ? true : p.category === filter
-      )
+      .filter((p) => (filter === "all" ? true : p.category === filter))
       .filter((p) => (p.stock ?? 1) > 0)
-      .filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
+      .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
-    // 🔀 RANDOMIZE ONLY ON "ALL"
-    if (filter === "all") {
-      return shuffleArray(result);
-    }
-
-    // ⬇️ NORMAL SORT FOR CATEGORIES
-    return result.sort(
-      (a, b) =>
-        Number(a.price || 0) - Number(b.price || 0)
-    );
+    if (filter === "all") return shuffleArray(result);
+    return result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
   }, [products, filter, search]);
 
   /* ================= RESET PAGE ================= */
@@ -120,9 +103,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   }, [page]);
 
   /* ================= PAGINATION ================= */
-  const totalPages =
-    Math.ceil(filtered.length / pageSize) || 1;
-
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const paginatedProducts = filtered.slice(
     (page - 1) * pageSize,
     page * pageSize
@@ -137,7 +118,6 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   function openProduct(product) {
     setSelectedProduct(product);
     setSelectedSize(null);
-
     logEvent("product_view", {
       productId: product.id,
       name: product.name,
@@ -149,19 +129,12 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
   /* ================= ADD TO CART ================= */
   function handleAddToCart(product) {
     const needsSize = productNeedsSize(product);
-
     if (needsSize && !selectedSize) {
       alert("Please select a size before adding to cart.");
       return;
     }
-
-    const payload = {
-      ...product,
-      size: needsSize ? selectedSize : null,
-    };
-
+    const payload = { ...product, size: needsSize ? selectedSize : null };
     addToCart(payload);
-
     logEvent("add_to_cart", {
       productId: product.id,
       name: product.name,
@@ -169,7 +142,6 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       category: product.category,
       size: payload.size,
     });
-
     setSelectedSize(null);
   }
 
@@ -227,9 +199,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
       {showLoader && (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <div className="w-12 h-12 border-4 border-black/20 border-t-black rounded-full animate-spin" />
-          <p className="text-sm text-neutral-500">
-            Loading products...
-          </p>
+          <p className="text-sm text-neutral-500">Loading products...</p>
         </div>
       )}
 
@@ -240,8 +210,27 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
             <div
               key={p.id}
               onClick={() => openProduct(p)}
-              className="border rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col cursor-pointer"
+              className="border rounded-xl overflow-hidden hover:shadow-md transition bg-white flex flex-col cursor-pointer relative"
             >
+              {/* ❤️ Star button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!user) {
+                    navigate("/login");
+                    return;
+                  }
+                  toggleStar(p.id);
+                }}
+                className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:scale-110 transition"
+                title={user ? "Save product" : "Login to save"}
+              >
+                {starred.includes(p.id)
+                  ? <FaHeart className="text-red-500 text-sm" />
+                  : <FiHeart className="text-neutral-400 text-sm" />
+                }
+              </button>
+
               <img
                 src={p.imageUrl}
                 alt={p.name}
@@ -249,22 +238,12 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
               />
 
               <div className="p-3 space-y-2 flex-1 flex flex-col">
-                <h4 className="font-semibold text-sm line-clamp-2">
-                  {p.name}
-                </h4>
-
-                <p className="text-sm font-medium">
-                  ₦{p.price.toLocaleString()}
-                </p>
-
+                <h4 className="font-semibold text-sm line-clamp-2">{p.name}</h4>
+                <p className="text-sm font-medium">₦{p.price.toLocaleString()}</p>
                 <span className="text-xs text-neutral-500 capitalize">
                   {p.category.replace(/-/g, " ")}
                 </span>
-
-                <span className="text-xs text-green-600 font-medium">
-                  In stock
-                </span>
-
+                <span className="text-xs text-green-600 font-medium">In stock</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -282,9 +261,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
       {/* ================= EMPTY ================= */}
       {!showLoader && filtered.length === 0 && (
-        <p className="text-center text-neutral-500 mt-10">
-          No products found.
-        </p>
+        <p className="text-center text-neutral-500 mt-10">No products found.</p>
       )}
 
       {/* ================= PAGINATION ================= */}
@@ -306,6 +283,20 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
             onClick={(e) => e.stopPropagation()}
             className="bg-white rounded-xl max-w-md w-full p-5 relative"
           >
+            {/* Star button in modal */}
+            <button
+              onClick={() => {
+                if (!user) { navigate("/login"); return; }
+                toggleStar(selectedProduct.id);
+              }}
+              className="absolute top-3 left-3 z-10 p-1.5 rounded-full bg-white/80 shadow-sm hover:scale-110 transition"
+            >
+              {starred.includes(selectedProduct.id)
+                ? <FaHeart className="text-red-500" />
+                : <FiHeart className="text-neutral-400" />
+              }
+            </button>
+
             <button
               onClick={() => setSelectedProduct(null)}
               className="absolute top-3 right-3 text-xs bg-black text-white py-1 px-2 rounded"
@@ -315,30 +306,19 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
 
             <img
               src={selectedProduct.imageUrl}
-              onClick={() =>
-                setFullImage(selectedProduct.imageUrl)
-              }
+              onClick={() => setFullImage(selectedProduct.imageUrl)}
               className="w-full max-h-[300px] object-cover rounded-lg mb-4 cursor-zoom-in"
             />
 
-            <h3 className="font-bold text-lg">
-              {selectedProduct.name}
-            </h3>
-
-            <p className="text-sm mb-1">
-              ₦{selectedProduct.price.toLocaleString()}
-            </p>
-
+            <h3 className="font-bold text-lg">{selectedProduct.name}</h3>
+            <p className="text-sm mb-1">₦{selectedProduct.price.toLocaleString()}</p>
             <p className="text-xs text-neutral-500 mb-3">
               Stock: {selectedProduct.stock ?? "Available"}
             </p>
 
             {productNeedsSize(selectedProduct) && (
               <div className="mb-4">
-                <p className="text-sm font-medium mb-2">
-                  Select Size
-                </p>
-
+                <p className="text-sm font-medium mb-2">Select Size</p>
                 <div className="flex flex-wrap gap-2">
                   {AVAILABLE_SIZES.map((size) => (
                     <button
@@ -360,10 +340,7 @@ export default function Shop({ page, setPage, pageSize = 8 }) {
             <button
               onClick={() => {
                 handleAddToCart(selectedProduct);
-                if (
-                  !productNeedsSize(selectedProduct) ||
-                  selectedSize
-                ) {
+                if (!productNeedsSize(selectedProduct) || selectedSize) {
                   setSelectedProduct(null);
                 }
               }}
